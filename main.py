@@ -23,7 +23,7 @@ def get_subjects(data_path):
 
 def main():
 
-    subjects = get_subjects(DATA_PATH)
+    subjects = get_subjects(VIDEO_PATH)
 
     splits = get_loso_splits(subjects)
 
