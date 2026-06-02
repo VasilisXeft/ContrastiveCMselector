@@ -18,12 +18,12 @@ def get_subjects(data_path):
     return [
         f.split(".")[0]
         for f in os.listdir(data_path)
-        if f.endswith(".dat")
+        if f.endswith(".avi")
     ]
 
 def main():
 
-    subjects = get_subjects(VIDEO_PATH)
+    subjects = [f"s{subj:02d}" for subj in range(1, 23)]
 
     splits = get_loso_splits(subjects)
 
