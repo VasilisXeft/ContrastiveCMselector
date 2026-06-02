@@ -1,7 +1,8 @@
 import torch
 from torch.utils.data import DataLoader
 
-from models.model_builder import build_model
+from build.model_builder import build_model
+from build.loss_builder import build_losses
 from losses.loss_router import LossRouter
 from training.trainer import Trainer
 from data.dataset import MultimodalDataset
