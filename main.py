@@ -7,6 +7,10 @@ from losses.loss_router import LossRouter
 from training.trainer import Trainer
 from data.dataset import MultimodalDataset
 
+DATA_PATH = r"C:/Users/vxefteris/Desktop/D/MindSpaces/DEAP Dataset/data_preprocessed_python/data_preprocessed_python"
+
+VIDEO_JSON = r"C:/Users/vxefteris/Desktop/D/MindSpaces/DEAP Dataset/face_video"
+
 
 def main():
 
@@ -21,7 +25,7 @@ def main():
         lambda_cfg=loss_cfg
     )
 
-    train_dataset = MultimodalDataset(...)
+    train_dataset = MultimodalDataset(data_path=DATA_PATH, video_path=VIDEO_JSON, subject_list=)
     train_loader = DataLoader(train_dataset, batch_size=cfg["training"]["batch_size"])
 
     optimizer = torch.optim.AdamW(
