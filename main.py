@@ -23,6 +23,7 @@ def get_subjects(data_path):
     ]
 
 def main():
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     subjects = [f"s{subj:02d}" for subj in range(1, 23)]
 
@@ -33,6 +34,7 @@ def main():
         print(f"\n===== FOLD {fold} =====")
 
         model, cfg = build_model("configs/config.yaml")
+        model = model.to(device)
 
         task_losses, contrastive_loss, graph_loss, loss_cfg = build_losses(cfg)
 

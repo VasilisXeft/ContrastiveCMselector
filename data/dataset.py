@@ -1,9 +1,8 @@
 import os
-
-import torch
-import numpy as np
 import pickle
+
 import cv2
+import torch
 
 
 class MultimodalDataset:
@@ -66,7 +65,6 @@ class MultimodalDataset:
 
         if not cap.isOpened():
             print(f"[WARNING] Missing video: {path}")
-            return self.__getitem__((idx + 1) % len(self))
 
         total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
 
@@ -85,7 +83,7 @@ class MultimodalDataset:
         for i in range(length):
 
             ret, frame = cap.read()
-            # frame = cv2.resize(frame, (112, 112))
+            frame = cv2.resize(frame, (112, 112))
 
             if not ret:
                 print(f"[WARNING] Frame read failed at {path}, frame {i}")
@@ -96,7 +94,7 @@ class MultimodalDataset:
             yield frame
 
         cap.release()
-
+        return None
 
     def __len__(self):
         return len(self.samples)
@@ -125,8 +123,8 @@ class MultimodalDataset:
         video = self.load_video_window(subject, trial, start, self.window_samples)
 
         label = {
-            "valence": data["labels"][trial][0],
-            "arousal": data["labels"][trial][1]
+            "valence": torch.tensor(data["labels"][trial][0], dtype=torch.float32),
+            "arousal": torch.tensor(data["labels"][trial][1], dtype=torch.float32)
         }
 
         return {
