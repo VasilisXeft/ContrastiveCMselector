@@ -1,27 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="5ad51d33-04a0-4795-91c0-200f6fafc44b" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/.idea/ContrastiveCMselector.iml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/Project_Default.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/profiles_settings.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/modules.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/config.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/data/dataset.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/losses/contrastive.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/losses/graph_loss.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/losses/task_loss.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/models/cross_modal.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/models/encoders.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/models/fusion.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/models/graph_embedding.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/models/selector.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/models/task_head.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/train.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/utils.py" afterDir="false" />
+    <list default="true" id="5ad51d33-04a0-4795-91c0-200f6fafc44b" name="Changes" comment="Update">
+      <change afterPath="$PROJECT_DIR$/losses/loss_router.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -38,6 +20,18 @@
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
+  <component name="GitHubPullRequestSearchHistory"><![CDATA[{
+  "lastFilter": {
+    "state": "OPEN",
+    "assignee": "VasilisXeft"
+  }
+}]]></component>
+  <component name="GithubPullRequestsUISettings"><![CDATA[{
+  "selectedUrlAndAccountId": {
+    "url": "https://github.com/VasilisXeft/ContrastiveCMselector.git",
+    "accountId": "ee6ce0c0-d8d9-4b3e-a786-d3b13221d02a"
+  }
+}]]></component>
   <component name="ProjectColorInfo"><![CDATA[{
   "associatedIndex": 5,
   "fromUser": false
@@ -84,11 +78,24 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1780393876866</updated>
-      <workItem from="1780393877894" duration="7683000" />
+      <workItem from="1780393877894" duration="8753000" />
     </task>
+    <task id="LOCAL-00001" summary="Update">
+      <option name="closed" value="true" />
+      <created>1780405186306</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1780405186306</updated>
+    </task>
+    <option name="localTasksCounter" value="2" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
+  </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="Update" />
+    <option name="LAST_COMMIT_MESSAGE" value="Update" />
   </component>
 </project>
