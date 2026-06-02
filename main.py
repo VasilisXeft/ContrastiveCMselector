@@ -1,3 +1,5 @@
+import os
+
 import torch
 from torch.utils.data import DataLoader
 
@@ -9,40 +11,76 @@ from data.dataset import MultimodalDataset
 
 DATA_PATH = r"C:/Users/vxefteris/Desktop/D/MindSpaces/DEAP Dataset/data_preprocessed_python/data_preprocessed_python"
 
-VIDEO_JSON = r"C:/Users/vxefteris/Desktop/D/MindSpaces/DEAP Dataset/face_video"
+VIDEO_PATH = r"C:/Users/vxefteris/Desktop/D/MindSpaces/DEAP Dataset/face_video"
 
+def get_subjects(data_path):
+    return [
+        f.split(".")[0]
+        for f in os.listdir(data_path)
+        if f.endswith(".dat")
+    ]
 
 def main():
 
-    model, cfg = build_model("configs/config.yaml")
+    subjects = get_subjects(DATA_PATH)
 
-    task_losses, contrastive_loss, graph_loss, loss_cfg = build_losses(cfg)
+    splits = get_loso_splits(subjects)
 
-    loss_router = LossRouter(
-        task_losses=task_losses,
-        contrastive_loss=contrastive_loss,
-        graph_loss=graph_loss,
-        lambda_cfg=loss_cfg
-    )
+    for fold, (train_subs, test_subs) in enumerate(splits):
 
-    train_dataset = MultimodalDataset(data_path=DATA_PATH, video_path=VIDEO_JSON, subject_list=)
-    train_loader = DataLoader(train_dataset, batch_size=cfg["training"]["batch_size"])
+        print(f"\n===== FOLD {fold} =====")
 
-    optimizer = torch.optim.AdamW(
-        model.parameters(),
-        lr=cfg["training"]["lr"],
-        weight_decay=cfg["training"]["weight_decay"]
-    )
+        model, cfg = build_model("configs/config.yaml")
 
-    trainer = Trainer(
-        model=model,
-        optimizer=optimizer,
-        loss_router=loss_router,
-        train_loader=train_loader,
-        device="cuda"
-    )
+        task_losses, contrastive_loss, graph_loss, loss_cfg = build_losses(cfg)
 
-    trainer.fit(cfg["training"]["epochs"])
+        loss_router = LossRouter(
+            task_losses=task_losses,
+            contrastive_loss=contrastive_loss,
+            graph_loss=graph_loss,
+            lambda_cfg=loss_cfg
+        )
+
+        train_dataset = MultimodalDataset(
+            data_path=DATA_PATH,
+            video_path=VIDEO_PATH,
+            subject_list=train_subs
+        )
+
+        test_dataset = MultimodalDataset(
+            data_path=DATA_PATH,
+            video_path=VIDEO_PATH,
+            subject_list=test_subs
+        )
+
+        train_loader = DataLoader(
+            train_dataset,
+            batch_size=cfg["training"]["batch_size"],
+            shuffle=True
+        )
+
+        test_loader = DataLoader(
+            test_dataset,
+            batch_size=cfg["training"]["batch_size"],
+            shuffle=False
+        )
+
+        optimizer = torch.optim.AdamW(
+            model.parameters(),
+            lr=cfg["training"]["lr"],
+            weight_decay=cfg["training"]["weight_decay"]
+        )
+
+        trainer = Trainer(
+            model=model,
+            optimizer=optimizer,
+            loss_router=loss_router,
+            train_loader=train_loader,
+            val_loader=test_loader,
+            device="cuda"
+        )
+
+        trainer.fit(cfg["training"]["epochs"])
 
 
 if __name__ == "__main__":
