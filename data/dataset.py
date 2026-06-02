@@ -109,10 +109,10 @@ class MultimodalDataset:
 
         data = getattr(self, f"{subject}_data")
 
-        eeg = torch.from_numpy(data["eeg"][trial, :, start:start+self.window_samples])
-        ppg = torch.from_numpy(data["ppg"][trial, start:start+self.window_samples])
-        eda = torch.from_numpy(data["eda"][trial, start:start+self.window_samples])
-        tmp = torch.from_numpy(data["tmp"][trial, start:start+self.window_samples])
+        eeg = torch.from_numpy(data["eeg"][trial, :, start:start+self.window_samples]).float()
+        ppg = torch.from_numpy(data["ppg"][trial, start:start+self.window_samples]).float()
+        eda = torch.from_numpy(data["eda"][trial, start:start+self.window_samples]).float()
+        tmp = torch.from_numpy(data["tmp"][trial, start:start+self.window_samples]).float()
 
 
         video_path = f"{self.video_path}/{subject}/{subject}_trial{trial+1:02d}.avi"

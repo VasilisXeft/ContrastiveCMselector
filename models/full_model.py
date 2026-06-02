@@ -45,9 +45,7 @@ class FullModel(nn.Module):
         # 3. FUSION (DIRECTED)
         # ------------------------
         fused_embeddings, scores, edges = self.fusion(
-            embeddings,
-            scores,
-            edges
+            embeddings
         )
 
         # ------------------------

@@ -96,7 +96,7 @@ class VisualEncoder(nn.Module):
         # -------------------------
         video_emb, attn_weights = self.temp_attn(frame_emb, mask)
 
-        return video_emb, attn_weights
+        return video_emb
 
 class EEGNetEncoder(nn.Module):
 
@@ -157,10 +157,14 @@ class PhysioEncoder(nn.Module):
             nn.GELU(),
         )
 
+        self.pool = nn.AdaptiveAvgPool1d(1)
+
         self.proj = nn.Linear(64, emb_dim)
 
     def forward(self, x):
         # x: [B, T]
         x = x.unsqueeze(1)
-        x = self.net(x).squeeze(-1)
+        x = self.net(x)
+        x = self.pool(x)
+        x = x.squeeze(-1)
         return self.proj(x)  # [B, D]
