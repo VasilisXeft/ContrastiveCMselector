@@ -25,9 +25,9 @@ class Trainer:
 
         self.device = device
 
-    def fit(self, epochs):
-
         self.model.to(self.device)
+
+    def fit(self, epochs):
 
         for epoch in range(epochs):
 

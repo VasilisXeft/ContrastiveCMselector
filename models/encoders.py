@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from torch.cuda import device
 from torchvision.models import mobilenet_v3_large, MobileNet_V3_Large_Weights
 
 

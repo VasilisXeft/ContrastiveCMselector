@@ -36,6 +36,8 @@ class FullModel(nn.Module):
             embeddings.append(z)
             embeddings_dict[name] = z
 
+        embeddings_dict = nn.ModuleDict(embeddings_dict)
+
         # ------------------------
         # 2. SELECTOR (GRAPH)
         # ------------------------
