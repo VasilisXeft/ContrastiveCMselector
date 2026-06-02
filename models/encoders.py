@@ -1,14 +1,14 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torchvision.models import mobilenet_v3_large
+from torchvision.models import mobilenet_v3_large, MobileNet_V3_Large_Weights
 
 
 class FaceMobileNetEncoder(nn.Module):
     def __init__(self, embed_dim=128, pretrained=True):
         super().__init__()
 
-        backbone = mobilenet_v3_large(pretrained=pretrained)
+        backbone = mobilenet_v3_large(weights=MobileNet_V3_Large_Weights.DEFAULT)
 
         # remove classifier head
         self.features = backbone.features
@@ -146,7 +146,7 @@ class EEGNetEncoder(nn.Module):
         return x
 
 class PhysioEncoder(nn.Module):
-    def __init__(self, in_ch=1, d=128):
+    def __init__(self, in_ch=1, emb_dim=128):
         super().__init__()
 
         self.net = nn.Sequential(
@@ -156,7 +156,7 @@ class PhysioEncoder(nn.Module):
             nn.GELU(),
         )
 
-        self.proj = nn.Linear(64, d)
+        self.proj = nn.Linear(64, emb_dim)
 
     def forward(self, x):
         # x: [B, T]

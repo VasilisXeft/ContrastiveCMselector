@@ -26,8 +26,8 @@ class MultimodalDataset:
             with open(f"{data_path}/{subject}.dat", "rb") as f:
                 d = pickle.load(f, encoding="latin1")
 
-            eeg = d["data"][:, 0:32, :]        # [trials, channels, time]
-            ppg, eda, tmp = d["data"][:, 37:40, :]      # adjust if needed
+            eeg = d["data"][:, 0:32, :]
+            ppg, eda, tmp = d["data"][:, 37, :], d["data"][:, 38, :], d["data"][:, 39, :]
             labels = d["labels"]
 
             num_trials = eeg.shape[0]
@@ -55,7 +55,7 @@ class MultimodalDataset:
             })
     def load_video_window(self, subject, trial, start):
 
-        path = f"{self.video_path}/{subject}/{trial}.avi"
+        path = f"{self.video_path}/{subject}/{subject}_trial{trial:02d}.avi"
 
         cap = cv2.VideoCapture(path)
 
@@ -96,9 +96,9 @@ class MultimodalDataset:
         data = getattr(self, f"{subject}_data")
 
         eeg = data["eeg"][trial, :, start:start+self.window_samples]
-        ppg = data["ppg"][trial, :, start:start+self.window_samples]
-        eda = data["eda"][trial, :, start:start+self.window_samples]
-        tmp = data["tmp"][trial, :, start:start+self.window_samples]
+        ppg = data["ppg"][trial, start:start+self.window_samples]
+        eda = data["eda"][trial, start:start+self.window_samples]
+        tmp = data["tmp"][trial, start:start+self.window_samples]
 
         video = self.load_video_window(subject, trial, start)
 

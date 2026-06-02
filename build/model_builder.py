@@ -5,7 +5,7 @@ from models.graph_embedding import GraphEmbedding
 from models.task_head import TaskHead
 
 # encoders imports
-from models.encoders import FaceMobileNetEncoder
+from models.encoders import VisualEncoder
 from models.encoders import EEGNetEncoder
 from models.encoders import PhysioEncoder
 
@@ -26,7 +26,7 @@ def build_model(cfg_path):
     # 1. ENCODERS
     # ----------------------
     encoders = {
-        "face": FaceMobileNetEncoder(**model_cfg["encoders"]["face"]),
+        "face": VisualEncoder(**model_cfg["encoders"]["face"]),
         "eeg": EEGNetEncoder(**model_cfg["encoders"]["eeg"]),
         "ppg": PhysioEncoder(**model_cfg["encoders"]["ppg"]),
         "eda": PhysioEncoder(**model_cfg["encoders"]["eda"]),

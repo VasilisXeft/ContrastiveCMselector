@@ -3,25 +3,19 @@ model:
 
   encoders:
     face:
-      type: mobilenet_v3
-      embed_dim: 128
-      pretrained: true
+      emb_dim: 128
 
     eeg:
-      type: eegnet
-      embed_dim: 128
+      emb_dim: 128
 
     ppg:
-      type: cnn1d
-      embed_dim: 128
+      emb_dim: 128
 
     eda:
-      type: cnn1d
-      embed_dim: 128
+      emb_dim: 128
 
     tmp:
-      type: cnn1d
-      embed_dim: 128
+      emb_dim: 128
 
   selector:
     type: contrastive
