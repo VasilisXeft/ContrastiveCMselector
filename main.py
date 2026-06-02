@@ -8,6 +8,7 @@ from build.loss_builder import build_losses
 from losses.loss_router import LossRouter
 from training.trainer import Trainer
 from data.dataset import MultimodalDataset
+from data.split import get_loso_splits
 
 DATA_PATH = r"C:/Users/vxefteris/Desktop/D/MindSpaces/DEAP Dataset/data_preprocessed_python/data_preprocessed_python"
 
