@@ -2,13 +2,28 @@ import torch
 
 
 def collate_fn(batch):
+    b = [b for b in batch if b is not None]
 
+    if len(b) == 0:
+        return None
+    
     out = {}
 
-    # ----------------------
-    # FACE: [B, T, 3, H, W]
-    # ----------------------
-    out["face"] = torch.stack([b["face"] for b in batch], dim=0)
+    # ======================================================
+    # FACE (streaming → tensor)
+    # ======================================================
+    face_batch = []
+
+    for b in batch:
+
+        frames = list(b["face"])  # consume generator
+
+        if len(frames) == 0:
+            raise ValueError("Empty face stream in batch")
+
+        face_batch.append(torch.stack(frames))  # [T,3,H,W]
+
+    out["face"] = torch.stack(face_batch, dim=0)  # [B,T,3,H,W]
 
     # ----------------------
     # EEG: [B, C, T]

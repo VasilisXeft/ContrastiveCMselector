@@ -1,6 +1,8 @@
 import torch
 from tqdm import tqdm
 
+from training.train_step import train_step
+
 
 class Trainer:
 
@@ -46,6 +48,8 @@ class Trainer:
         epoch_logs = []
 
         for batch in tqdm(self.train_loader):
+            if batch is None:
+                continue
 
             logs = train_step(
                 batch,

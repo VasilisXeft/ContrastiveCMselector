@@ -1,3 +1,5 @@
+import os
+
 import torch
 import numpy as np
 import pickle
@@ -32,7 +34,7 @@ class MultimodalDataset:
 
             num_trials = eeg.shape[0]
 
-            for t in range(num_trials):
+            for t in range(0, num_trials):
 
                 T = eeg.shape[-1]
 
@@ -53,34 +55,48 @@ class MultimodalDataset:
                 "tmp": tmp,
                 "labels": labels
             })
-    def load_video_window(self, subject, trial, start):
 
-        path = f"{self.video_path}/{subject}/{subject}_trial{trial:02d}.avi"
+    def load_video_window(self, subject, trial, start, length):
+        start = int((start/128)*50)
+        length = int((length/128)*50)
+
+        path = f"{self.video_path}/{subject}/{subject}_trial{trial+1:02d}.avi"
 
         cap = cv2.VideoCapture(path)
 
-        frames = []
-        idx = 0
+        if not cap.isOpened():
+            print(f"[WARNING] Missing video: {path}")
+            return self.__getitem__((idx + 1) % len(self))
 
-        start_frame = start  # assume synced index (or map via fps)
+        total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
 
-        while True:
+        if start >= total_frames:
+            raise ValueError(
+                f"Start beyond video length\n"
+                f"path={path}\nstart={start}\nframes={total_frames}"
+            )
+
+        if start + length > total_frames:
+            length = total_frames - start
+
+        # IMPORTANT: safe seek
+        cap.set(cv2.CAP_PROP_POS_FRAMES, int(start))
+
+        for i in range(length):
+
             ret, frame = cap.read()
+            # frame = cv2.resize(frame, (112, 112))
+
             if not ret:
+                print(f"[WARNING] Frame read failed at {path}, frame {i}")
                 break
 
-            if idx >= start_frame and len(frames) < self.window_samples:
-                frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                frames.append(frame)
-
-            idx += 1
+            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            frame = torch.from_numpy(frame).permute(2, 0, 1).float() / 255.0
+            yield frame
 
         cap.release()
 
-        frames = np.stack(frames)
-        frames = torch.tensor(frames).permute(0, 3, 1, 2)
-
-        return frames.float() / 255.0
 
     def __len__(self):
         return len(self.samples)
@@ -95,14 +111,23 @@ class MultimodalDataset:
 
         data = getattr(self, f"{subject}_data")
 
-        eeg = data["eeg"][trial, :, start:start+self.window_samples]
-        ppg = data["ppg"][trial, start:start+self.window_samples]
-        eda = data["eda"][trial, start:start+self.window_samples]
-        tmp = data["tmp"][trial, start:start+self.window_samples]
+        eeg = torch.from_numpy(data["eeg"][trial, :, start:start+self.window_samples])
+        ppg = torch.from_numpy(data["ppg"][trial, start:start+self.window_samples])
+        eda = torch.from_numpy(data["eda"][trial, start:start+self.window_samples])
+        tmp = torch.from_numpy(data["tmp"][trial, start:start+self.window_samples])
 
-        video = self.load_video_window(subject, trial, start)
 
-        label = data["labels"][trial]
+        video_path = f"{self.video_path}/{subject}/{subject}_trial{trial+1:02d}.avi"
+        if not os.path.exists(video_path):
+            print(f"[WARNING] Missing video: {video_path}")
+            return None
+
+        video = self.load_video_window(subject, trial, start, self.window_samples)
+
+        label = {
+            "valence": data["labels"][trial][0],
+            "arousal": data["labels"][trial][1]
+        }
 
         return {
             "face": video,     # [T, 3, H, W]

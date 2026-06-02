@@ -9,6 +9,7 @@ from losses.loss_router import LossRouter
 from training.trainer import Trainer
 from data.dataset import MultimodalDataset
 from data.split import get_loso_splits
+from data.collate import collate_fn
 
 DATA_PATH = r"C:/Users/vxefteris/Desktop/D/MindSpaces/DEAP Dataset/data_preprocessed_python/data_preprocessed_python"
 
@@ -57,13 +58,15 @@ def main():
         train_loader = DataLoader(
             train_dataset,
             batch_size=cfg["training"]["batch_size"],
-            shuffle=True
+            shuffle=True,
+            collate_fn=collate_fn,
         )
 
         test_loader = DataLoader(
             test_dataset,
             batch_size=cfg["training"]["batch_size"],
-            shuffle=False
+            shuffle=False,
+            collate_fn=collate_fn,
         )
 
         optimizer = torch.optim.AdamW(
