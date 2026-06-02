@@ -4,7 +4,7 @@ import torch.nn as nn
 
 class CrossModalBlock(nn.Module):
 
-    def __init__(self, dim, num_heads=8, dropout=0.1):
+    def __init__(self, dim=128, num_heads=8, dropout=0.1):
         super().__init__()
 
         # Cross attention

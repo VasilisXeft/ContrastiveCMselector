@@ -1,0 +1,60 @@
+model:
+  modalities: ["face", "eeg", "ppg", "eda", "tmp"]
+
+  encoders:
+    face:
+      type: mobilenet_v3
+      embed_dim: 128
+      pretrained: true
+
+    eeg:
+      type: eegnet
+      embed_dim: 128
+
+    ppg:
+      type: cnn1d
+      embed_dim: 128
+
+    eda:
+      type: cnn1d
+      embed_dim: 128
+
+    tmp:
+      type: cnn1d
+      embed_dim: 128
+
+  selector:
+    type: contrastive
+    top_k: 2
+    temperature: 0.1
+
+  fusion:
+    type: directed_cross_attention
+
+  graph_embedding:
+    type: attention   # mean | sum | concat | attention
+
+  task_head:
+    type: multi_output
+
+    outputs:
+      valence:
+        type: multiclass
+        output_dim: 2
+
+      arousal:
+        type: multiclass
+        output_dim: 2
+
+
+loss:
+  task: 1.0
+  contrastive: 0.5
+  graph: 0.1
+
+training:
+  batch_size: 16
+  lr: 0.0001
+  weight_decay: 0.01
+  epochs: 50
+  grad_clip: 5.0
