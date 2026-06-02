@@ -1,4 +1,5 @@
 import yaml
+import torch.nn as nn
 
 from models.full_model import FullModel
 from models.graph_embedding import GraphEmbedding

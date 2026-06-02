@@ -14,7 +14,7 @@ class FullModel(nn.Module):
     ):
         super().__init__()
 
-        self.encoders = encoders
+        self.encoders = nn.ModuleDict(encoders)
         self.selector = selector
         self.fusion = fusion
         self.graph_embedding = graph_embedding
@@ -35,8 +35,6 @@ class FullModel(nn.Module):
 
             embeddings.append(z)
             embeddings_dict[name] = z
-
-        embeddings_dict = nn.ModuleDict(embeddings_dict)
 
         # ------------------------
         # 2. SELECTOR (GRAPH)
