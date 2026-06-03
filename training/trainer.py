@@ -1,5 +1,7 @@
 import torch
 from tqdm import tqdm
+from sklearn.metrics import balanced_accuracy_score, f1_score
+import torch
 
 from training.train_step import train_step, move_batch_to_device
 
@@ -33,25 +35,32 @@ class Trainer:
 
             print(f"\nEpoch {epoch+1}/{epochs}")
 
-            train_logs = self.train_epoch()
+            train_loss, train_preds, train_targets = self.train_epoch()
+            train_metrics = self.compute_epoch_metrics(train_preds, train_targets)
 
-            print("Train:", train_logs)
+            print("Train:", train_loss, train_metrics)
 
             if self.val_loader is not None:
+                val_loss, val_preds, val_targets = self.validate()
+                val_metrics = self.compute_epoch_metrics(val_preds, val_targets)
 
-                val_logs = self.validate()
+                print("Val:", val_loss, val_metrics)
 
-                print("Val:", val_logs)
 
     def train_epoch(self):
 
+        self.model.train()
+
         epoch_logs = []
+
+        all_preds = {"valence": [], "arousal": []}
+        all_targets = {"valence": [], "arousal": []}
 
         for batch in tqdm(self.train_loader):
             if batch is None:
                 continue
 
-            logs = train_step(
+            logs, preds, targets = train_step(
                 batch,
                 self.model,
                 self.optimizer,
@@ -61,13 +70,23 @@ class Trainer:
 
             epoch_logs.append(logs)
 
-        return self.aggregate(epoch_logs)
+            # collect predictions
+            for task in all_preds.keys():
+                pred_labels = preds[task].argmax(dim=1)
+
+                all_preds[task].append(pred_labels.detach().cpu())
+                all_targets[task].append(targets[task].detach().cpu())
+
+        return self.aggregate(epoch_logs), all_preds, all_targets
 
     def validate(self):
 
         self.model.eval()
 
         epoch_logs = []
+
+        all_preds = {"valence": [], "arousal": []}
+        all_targets = {"valence": [], "arousal": []}
 
         with torch.no_grad():
 
@@ -83,7 +102,26 @@ class Trainer:
 
                 epoch_logs.append(logs)
 
-        return self.aggregate(epoch_logs)
+                for task in all_preds.keys():
+                    pred_labels = outputs["pred"][task].argmax(dim=1)
+
+                    all_preds[task].append(pred_labels.cpu())
+                    all_targets[task].append(batch["targets"][task].cpu())
+
+        return self.aggregate(epoch_logs), all_preds, all_targets
+
+    def compute_epoch_metrics(self, all_preds, all_targets):
+
+        metrics = {}
+
+        for task in all_preds.keys():
+            y_pred = torch.cat(all_preds[task]).numpy()
+            y_true = torch.cat(all_targets[task]).numpy()
+
+            metrics[f"{task}_bal_acc"] = balanced_accuracy_score(y_true, y_pred)
+            metrics[f"{task}_f1_score"] = f1_score(y_true, y_pred)
+
+        return metrics
 
     def aggregate(self, logs_list):
 

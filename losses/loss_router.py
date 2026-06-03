@@ -1,5 +1,4 @@
 import torch
-from sklearn.metrics import balanced_accuracy_score, f1_score
 
 
 class LossRouter:
@@ -51,12 +50,6 @@ class LossRouter:
 
             if task_name not in self.task_losses:
                 continue
-
-            acc = balanced_accuracy_score(targets[task_name].detach().cpu().numpy(), pred.detach().cpu().numpy())
-            logs[f"acc_{task_name}"] = acc
-
-            f1 = f1_score(targets[task_name].detach().cpu().numpy(), pred.detach().cpu().numpy())
-            logs[f"f1_{task_name}"] = f1
 
             loss_fn = self.task_losses[task_name]
 
