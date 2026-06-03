@@ -63,9 +63,6 @@ class MultimodalDataset:
 
         cap = cv2.VideoCapture(path)
 
-        if not cap.isOpened():
-            print(f"[WARNING] Missing video: {path}")
-
         total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
 
         if start >= total_frames:
@@ -86,7 +83,6 @@ class MultimodalDataset:
             frame = cv2.resize(frame, (112, 112))
 
             if not ret:
-                print(f"[WARNING] Frame read failed at {path}, frame {i}")
                 break
 
             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
@@ -117,14 +113,13 @@ class MultimodalDataset:
 
         video_path = f"{self.video_path}/{subject}/{subject}_trial{trial+1:02d}.avi"
         if not os.path.exists(video_path):
-            print(f"[WARNING] Missing video: {video_path}")
             return None
 
         video = self.load_video_window(subject, trial, start, self.window_samples)
 
         label = {
-            "valence": torch.tensor(data["labels"][trial][0], dtype=torch.float32),
-            "arousal": torch.tensor(data["labels"][trial][1], dtype=torch.float32)
+            "valence": torch.tensor(data["labels"][trial][0] >= 5.0, dtype=torch.long),
+            "arousal": torch.tensor(data["labels"][trial][1] >= 5.0, dtype=torch.long)
         }
 
         return {

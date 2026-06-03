@@ -65,13 +65,16 @@ class LossRouter:
         # =====================================================
         # 2. CONTRASTIVE LOSS
         # =====================================================
+        '''
         contrastive_loss = self.contrastive_loss(
             model_out["graph_emb"],
             batch["graph_emb_pos"]
         )
+        '''
 
+        contrastive_loss = 0.0
         total_loss += self.lambda_cfg["contrastive"] * contrastive_loss
-        logs["contrastive_loss"] = contrastive_loss.item()
+        #logs["contrastive_loss"] = contrastive_loss.item()
 
         # =====================================================
         # 3. GRAPH LOSS (selector structure regularization)
@@ -83,7 +86,7 @@ class LossRouter:
         )
 
         total_loss += self.lambda_cfg["graph"] * graph_loss
-        logs["graph_loss"] = graph_loss.item()
+        #logs["graph_loss"] = graph_loss.item()
 
         # =====================================================
         # FINAL

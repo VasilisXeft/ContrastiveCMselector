@@ -1,7 +1,7 @@
 import torch
 from tqdm import tqdm
 
-from training.train_step import train_step
+from training.train_step import train_step, move_batch_to_device
 
 
 class Trainer:
