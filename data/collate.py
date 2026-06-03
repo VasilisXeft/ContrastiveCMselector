@@ -2,9 +2,9 @@ import torch
 
 
 def collate_fn(batch):
-    b = [b for b in batch if b is not None]
+    batch = [b for b in batch if b is not None]
 
-    if len(b) == 0:
+    if len(batch) == 0:
         return None
     
     out = {}

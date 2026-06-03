@@ -134,3 +134,5 @@ class MultimodalDataset:
                 "targets": label,
                 "subject": subject
             }
+
+        return None
