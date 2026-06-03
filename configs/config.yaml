@@ -34,11 +34,11 @@ model:
     outputs:
       valence:
         type: multiclass
-        output_dim: 2
+        output_dim: 1
 
       arousal:
         type: multiclass
-        output_dim: 2
+        output_dim: 1
 
 
 loss:

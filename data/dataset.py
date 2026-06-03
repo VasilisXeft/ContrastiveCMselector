@@ -79,6 +79,9 @@ class MultimodalDataset:
 
         for i in range(length):
 
+            if i % 5 != 0:
+                continue
+
             ret, frame = cap.read()
             frame = cv2.resize(frame, (112, 112))
 

@@ -28,7 +28,8 @@ class FaceMobileNetEncoder(nn.Module):
         x: [B, 3, H, W]
         """
 
-        x = self.features(x)
+        with torch.no_grad():
+            x = self.features(x)
         x = self.pool(x)
         x = x.flatten(1)
 
@@ -71,6 +72,8 @@ class VisualEncoder(nn.Module):
         super().__init__()
 
         self.frame_encoder = FaceMobileNetEncoder(emb_dim)
+        for p in self.frame_encoder.features.parameters():
+            p.requires_grad = False
 
         self.temp_attn = TemporalAttentionPooling(emb_dim)
     def forward(self, x, mask=None):
