@@ -1,4 +1,5 @@
 import torch
+from sklearn.metrics import balanced_accuracy_score
 
 
 class LossRouter:
@@ -51,6 +52,9 @@ class LossRouter:
             if task_name not in self.task_losses:
                 continue
 
+            acc = balanced_accuracy_score(pred, targets[task_name])
+            logs[f"acc_{task_name}"] = acc
+
             loss_fn = self.task_losses[task_name]
 
             loss = loss_fn(pred, targets[task_name])
@@ -74,7 +78,11 @@ class LossRouter:
 
         contrastive_loss = 0.0
         total_loss += self.lambda_cfg["contrastive"] * contrastive_loss
-        #logs["contrastive_loss"] = contrastive_loss.item()
+
+        try:
+            logs["contrastive_loss"] = contrastive_loss.item()
+        except:
+            logs["contrastive_loss"] = contrastive_loss
 
         # =====================================================
         # 3. GRAPH LOSS (selector structure regularization)
@@ -86,7 +94,11 @@ class LossRouter:
         )
 
         total_loss += self.lambda_cfg["graph"] * graph_loss
-        #logs["graph_loss"] = graph_loss.item()
+
+        try:
+            logs["graph_loss"] = graph_loss.item()
+        except:
+            logs["graph_loss"] = graph_loss
 
         # =====================================================
         # FINAL
