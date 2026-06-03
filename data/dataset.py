@@ -115,22 +115,22 @@ class MultimodalDataset:
 
 
         video_path = f"{self.video_path}/{subject}/{subject}_trial{trial+1:02d}.avi"
-        if not os.path.exists(video_path):
-            return None
 
-        video = self.load_video_window(subject, trial, start, self.window_samples)
+        if os.path.exists(video_path):
 
-        label = {
-            "valence": torch.tensor(data["labels"][trial][0] >= 5.0, dtype=torch.long),
-            "arousal": torch.tensor(data["labels"][trial][1] >= 5.0, dtype=torch.long)
-        }
+            video = self.load_video_window(subject, trial, start, self.window_samples)
 
-        return {
-            "face": video,     # [T, 3, H, W]
-            "eeg": eeg,        # [C, T]
-            "ppg": ppg,  # [C, T] or [T]
-            "eda": eda,  # [C, T] or [T]
-            "tmp": tmp,  # [C, T] or [T]
-            "targets": label,
-            "subject": subject
-        }
+            label = {
+                "valence": torch.tensor(data["labels"][trial][0] >= 5.0, dtype=torch.float),
+                "arousal": torch.tensor(data["labels"][trial][1] >= 5.0, dtype=torch.float)
+            }
+
+            return {
+                "face": video,     # [T, 3, H, W]
+                "eeg": eeg,        # [C, T]
+                "ppg": ppg,  # [C, T] or [T]
+                "eda": eda,  # [C, T] or [T]
+                "tmp": tmp,  # [C, T] or [T]
+                "targets": label,
+                "subject": subject
+            }

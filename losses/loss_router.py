@@ -53,7 +53,7 @@ class LossRouter:
 
             loss_fn = self.task_losses[task_name]
 
-            loss = loss_fn(pred, targets[task_name])
+            loss = loss_fn(pred.squeeze(-1), targets[task_name])
 
             task_loss += loss
 
@@ -84,9 +84,8 @@ class LossRouter:
         # 3. GRAPH LOSS (selector structure regularization)
         # =====================================================
         graph_loss = self.graph_loss(
-            model_out["edges"],
             model_out["fused"],
-            model_out["embeddings"]
+            model_out["scores"]
         )
 
         total_loss += self.lambda_cfg["graph"] * graph_loss

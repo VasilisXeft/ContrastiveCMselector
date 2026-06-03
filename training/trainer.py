@@ -115,7 +115,8 @@ class Trainer:
         metrics = {}
 
         for task in all_preds.keys():
-            y_pred = torch.cat(all_preds[task]).numpy()
+            probs = torch.sigmoid(all_preds[task])
+            y_pred = (probs > 0.5).long()
             y_true = torch.cat(all_targets[task]).numpy()
 
             metrics[f"{task}_bal_acc"] = balanced_accuracy_score(y_true, y_pred)

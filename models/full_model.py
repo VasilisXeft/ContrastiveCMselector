@@ -36,6 +36,8 @@ class FullModel(nn.Module):
             embeddings.append(z)
             embeddings_dict[name] = z
 
+        embeddings = torch.stack(embeddings, dim=1)
+
         # ------------------------
         # 2. SELECTOR (GRAPH)
         # ------------------------
