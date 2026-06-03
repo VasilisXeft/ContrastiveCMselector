@@ -6,6 +6,39 @@ import torch
 from training.train_step import train_step, move_batch_to_device
 
 
+def aggregate(logs_list):
+
+    agg = {}
+
+    for logs in logs_list:
+
+        for k, v in logs.items():
+
+            if k not in agg:
+                agg[k] = []
+
+            agg[k].append(v)
+
+    return {
+        k: sum(v) / len(v)
+        for k, v in agg.items()
+    }
+
+
+def compute_epoch_metrics(all_preds, all_targets):
+
+    metrics = {}
+
+    for task in all_preds.keys():
+        y_pred = torch.cat(all_preds[task]).cpu().numpy()
+        y_true = torch.cat(all_targets[task]).cpu().numpy()
+
+        metrics[f"{task}_bal_acc"] = balanced_accuracy_score(y_true, y_pred)
+        metrics[f"{task}_f1_score"] = f1_score(y_true, y_pred)
+
+    return metrics
+
+
 class Trainer:
 
     def __init__(
@@ -36,13 +69,13 @@ class Trainer:
             print(f"\nEpoch {epoch+1}/{epochs}")
 
             train_loss, train_preds, train_targets = self.train_epoch()
-            train_metrics = self.compute_epoch_metrics(train_preds, train_targets)
+            train_metrics = compute_epoch_metrics(train_preds, train_targets)
 
             print("Train:", train_loss, train_metrics)
 
             if self.val_loader is not None:
                 val_loss, val_preds, val_targets = self.validate()
-                val_metrics = self.compute_epoch_metrics(val_preds, val_targets)
+                val_metrics = compute_epoch_metrics(val_preds, val_targets)
 
                 print("Val:", val_loss, val_metrics)
 
@@ -79,7 +112,7 @@ class Trainer:
                 all_preds[task].append(pred_labels)
                 all_targets[task].append(batch["targets"][task].detach().cpu().view(-1))
 
-        return self.aggregate(epoch_logs), all_preds, all_targets
+        return aggregate(epoch_logs), all_preds, all_targets
 
     def validate(self):
 
@@ -112,35 +145,6 @@ class Trainer:
                     all_preds[task].append(pred_labels)
                     all_targets[task].append(batch["targets"][task].detach().cpu().view(-1))
 
-        return self.aggregate(epoch_logs), all_preds, all_targets
+        return aggregate(epoch_logs), all_preds, all_targets
 
-    def compute_epoch_metrics(self, all_preds, all_targets):
-
-        metrics = {}
-
-        for task in all_preds.keys():
-            y_pred = torch.cat(all_preds[task]).cpu().numpy()
-            y_true = torch.cat(all_targets[task]).cpu().numpy()
-
-            metrics[f"{task}_bal_acc"] = balanced_accuracy_score(y_true, y_pred)
-            metrics[f"{task}_f1_score"] = f1_score(y_true, y_pred)
-
-        return metrics
-
-    def aggregate(self, logs_list):
-
-        agg = {}
-
-        for logs in logs_list:
-
-            for k, v in logs.items():
-
-                if k not in agg:
-                    agg[k] = []
-
-                agg[k].append(v)
-
-        return {
-            k: sum(v) / len(v)
-            for k, v in agg.items()
-        }
+    

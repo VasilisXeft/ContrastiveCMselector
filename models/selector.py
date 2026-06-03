@@ -69,17 +69,16 @@ class DirectedContrastiveSelector(nn.Module):
         # ---- score directed edges ----
         scores = self.edge_mlp(edge_input).squeeze(-1)  # [B, M, M]
 
-        # aggregate batch
-        scores = scores.mean(dim=0)  # [M, M]
+        mean_scores = scores.mean(dim=0)
 
-        # remove self edges
-        scores.fill_diagonal_(-1e9)
+        mask = torch.eye(M, device=scores.device).bool()
+        scores = scores.masked_fill(mask.unsqueeze(0), -1e9)
 
         # ---- top-k outgoing edges per node ----
         directed_edges = []
 
         for i in range(M):
-            topk_vals, topk_idx = torch.topk(scores[i], self.top_k)
+            topk_vals, topk_idx = torch.topk(mean_scores[i], self.top_k)
 
             for k, j in enumerate(topk_idx.tolist()):
                 directed_edges.append((i, j, topk_vals[k].item()))

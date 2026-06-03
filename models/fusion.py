@@ -5,20 +5,17 @@ import torch.nn.functional as F
 
 class DirectedFusion(nn.Module):
 
-    def __init__(self, selector, cross_modal_block):
+    def __init__(self, cross_modal_block):
         super().__init__()
 
-        self.selector = selector
         self.cross_modal_block = cross_modal_block
 
-    def forward(self, modality_embeddings):
+    def forward(self, modality_embeddings, scores, edges ):
 
         # modality_embeddings:
         # list([B,D])
 
         tokens = [m.unsqueeze(1) for m in modality_embeddings]
-
-        scores, edges = self.selector(modality_embeddings)
 
         M = len(tokens)
 
@@ -46,4 +43,4 @@ class DirectedFusion(nn.Module):
 
             outputs.append(fused)
 
-        return outputs, scores, edges
+        return outputs

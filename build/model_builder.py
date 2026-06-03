@@ -46,7 +46,7 @@ def build_model(cfg_path):
     # 3. FUSION
     # ----------------------
     cross_modal_block = CrossModalBlock()
-    fusion = DirectedFusion(selector, cross_modal_block)
+    fusion = DirectedFusion(cross_modal_block)
 
     # ----------------------
     # 4. GRAPH EMBEDDING

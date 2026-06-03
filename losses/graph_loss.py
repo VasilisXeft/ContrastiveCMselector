@@ -7,8 +7,9 @@ def graph_loss(z, scores):
     scores: [M, M]
     """
 
+    z = F.normalize(z, p=2, dim=-1)
     # ensure non-negative weights
-    W = F.relu(scores)
+    W = torch.softmax(scores, dim=-1)
 
     z_i = z.unsqueeze(1)   # [M, 1, D]
     z_j = z.unsqueeze(0)   # [1, M, D]
@@ -31,6 +32,6 @@ def graph_loss_batch(z, scores):
 
     loss = 0.0
     for b in range(B):
-        loss += graph_loss(z[b], scores)
+        loss += graph_loss(z[b], scores[b])
 
     return loss / B
