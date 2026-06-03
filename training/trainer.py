@@ -72,10 +72,12 @@ class Trainer:
 
             # collect predictions
             for task in all_preds.keys():
-                pred_labels = preds[task].argmax(dim=1)
+                logits = preds[task].squeeze(-1)  # [B]
 
-                all_preds[task].append(pred_labels.detach().cpu())
-                all_targets[task].append(targets[task].detach().cpu())
+                pred_labels = (torch.sigmoid(logits) > 0.5).detach().cpu().long()
+
+                all_preds[task].append(pred_labels)
+                all_targets[task].append(batch["targets"][task].detach().cpu().view(-1))
 
         return self.aggregate(epoch_logs), all_preds, all_targets
 
@@ -103,10 +105,12 @@ class Trainer:
                 epoch_logs.append(logs)
 
                 for task in all_preds.keys():
-                    pred_labels = outputs["pred"][task].argmax(dim=1)
+                    logits = outputs["pred"][task].squeeze(-1)  # [B]
 
-                    all_preds[task].append(pred_labels.cpu())
-                    all_targets[task].append(batch["targets"][task].cpu())
+                    pred_labels = (torch.sigmoid(logits) > 0.5).detach().cpu().long()
+
+                    all_preds[task].append(pred_labels)
+                    all_targets[task].append(batch["targets"][task].detach().cpu().view(-1))
 
         return self.aggregate(epoch_logs), all_preds, all_targets
 
@@ -115,9 +119,8 @@ class Trainer:
         metrics = {}
 
         for task in all_preds.keys():
-            probs = torch.sigmoid(all_preds[task])
-            y_pred = (probs > 0.5).long()
-            y_true = torch.cat(all_targets[task]).numpy()
+            y_pred = torch.cat(all_preds[task]).cpu().numpy()
+            y_true = torch.cat(all_targets[task]).cpu().numpy()
 
             metrics[f"{task}_bal_acc"] = balanced_accuracy_score(y_true, y_pred)
             metrics[f"{task}_f1_score"] = f1_score(y_true, y_pred)
