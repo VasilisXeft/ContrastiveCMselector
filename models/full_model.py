@@ -54,7 +54,6 @@ class FullModel(nn.Module):
         # 4. GRAPH EMBEDDING (READOUT)
         # ------------------------
         graph_emb = self.graph_embedding(fused_embeddings)
-
         # ------------------------
         # 5. TASK HEAD
         # ------------------------

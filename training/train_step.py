@@ -26,6 +26,8 @@ def train_step(
     # 3. LOSS COMPUTATION
     # --------------------------
     loss, logs = loss_router.compute(outputs, batch)
+    preds = outputs["pred"]
+    targets = batch["targets"]
 
     # --------------------------
     # 4. BACKPROP
@@ -42,7 +44,7 @@ def train_step(
 
     logs["lr"] = optimizer.param_groups[0]["lr"]
 
-    return logs
+    return logs, preds, targets
 
 
 # helper

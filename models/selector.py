@@ -47,7 +47,7 @@ class DirectedContrastiveSelector(nn.Module):
                 x = x.mean(dim=1)
             pooled.append(x)
 
-        x = torch.stack(pooled, dim=1)  # [B, M, D]
+        x = torch.stack(pooled)  # [B, M, D]
 
         # ---- projection ----
         z = self.proj(x)  # [B, M, P]
