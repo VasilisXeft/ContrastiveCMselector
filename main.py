@@ -32,6 +32,7 @@ def main():
     for fold, (train_subs, test_subs) in enumerate(splits):
 
         print(f"\n===== FOLD {fold} =====")
+        log_pth = f"logs/fold{fold}.json"
 
         model, cfg = build_model("configs/config.yaml")
         model = model.to(device)
@@ -86,7 +87,7 @@ def main():
             device="cuda"
         )
 
-        trainer.fit(cfg["training"]["epochs"])
+        trainer.fit(cfg["training"]["epochs"], log_pth=log_pth)
 
 
 if __name__ == "__main__":

@@ -1,6 +1,7 @@
 import torch.nn as nn
 from losses.contrastive import info_nce
 from losses.graph_loss import graph_loss_batch
+from losses.task_loss import FocalLoss
 
 
 def build_losses(cfg):
@@ -8,8 +9,8 @@ def build_losses(cfg):
     loss_cfg = cfg["loss"]
 
     task_losses = {
-        "valence": nn.BCEWithLogitsLoss(),
-        "arousal": nn.BCEWithLogitsLoss()
+        "valence": FocalLoss(alpha=0.5, gamma=2.0),
+        "arousal": FocalLoss(alpha=0.5, gamma=2.0)
     }
 
     contrastive_loss = info_nce

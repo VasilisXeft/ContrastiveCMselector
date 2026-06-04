@@ -60,9 +60,32 @@ class Trainer:
 
         self.device = device
 
+        self.history = {
+            "train_loss": [],
+            "val_loss": [],
+            "train_metrics": [],
+            "val_metrics": []
+        }
+
         self.model.to(self.device)
 
-    def fit(self, epochs):
+    def save_history(self, path="training_log.json"):
+        import json
+
+        def to_serializable(x):
+            if isinstance(x, dict):
+                return {k: to_serializable(v) for k, v in x.items()}
+            if isinstance(x, list):
+                return [to_serializable(v) for v in x]
+            try:
+                return float(x)
+            except:
+                return str(x)
+
+        with open(path, "w") as f:
+            json.dump(to_serializable(self.history), f, indent=2)
+
+    def fit(self, epochs, log_pth=None):
 
         for epoch in range(epochs):
 
@@ -73,11 +96,19 @@ class Trainer:
 
             print("Train:", train_loss, train_metrics)
 
+            self.history["train_loss"].append(train_loss)
+            self.history["train_metrics"].append(train_metrics)
+
             if self.val_loader is not None:
                 val_loss, val_preds, val_targets = self.validate()
                 val_metrics = compute_epoch_metrics(val_preds, val_targets)
 
                 print("Val:", val_loss, val_metrics)
+
+                self.history["val_loss"].append(val_loss)
+                self.history["val_metrics"].append(val_metrics)
+
+        self.save_history(log_pth)
 
 
     def train_epoch(self):
@@ -147,4 +178,3 @@ class Trainer:
 
         return aggregate(epoch_logs), all_preds, all_targets
 
-    
