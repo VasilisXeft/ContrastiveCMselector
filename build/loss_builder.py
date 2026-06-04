@@ -1,4 +1,3 @@
-import torch.nn as nn
 from losses.contrastive import info_nce
 from losses.graph_loss import graph_loss_batch
 from losses.task_loss import FocalLoss
