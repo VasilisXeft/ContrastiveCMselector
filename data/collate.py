@@ -46,6 +46,11 @@ def collate_fn(batch):
     out["tmp"] = torch.stack([b["tmp"] for b in batch], dim=0)
 
     # ----------------------
+    # Signal quality: [B, ...]
+    # ----------------------
+    out["signal_quality"] = torch.stack([b["signal_quality"] for b in batch], dim=0)
+
+    # ----------------------
     # TARGETS (DICT OF LISTS)
     # ----------------------
     targets = {}
