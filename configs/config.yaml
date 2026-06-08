@@ -50,6 +50,7 @@ loss:
   task: 1.0
   contrastive: 0.5
   graph: 0.1
+  reliability: 0.1
 
 training:
   batch_size: 36

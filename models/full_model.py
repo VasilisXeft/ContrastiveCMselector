@@ -75,5 +75,6 @@ class FullModel(nn.Module):
             "fused": fused_embeddings,
             "embeddings": embeddings_dict,
             "edges": edges,
-            "scores": scores
+            "scores": scores,
+            "reliability_score": r
         }
