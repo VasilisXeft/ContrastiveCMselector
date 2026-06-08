@@ -12,6 +12,7 @@ from models.encoders import PhysioEncoder
 
 # selector + fusion imports
 from models.selector import DirectedContrastiveSelector
+from models.reliability_score import ReliabilityGating
 from models.fusion import DirectedFusion
 from models.cross_modal import CrossModalBlock
 
@@ -34,8 +35,17 @@ def build_model(cfg_path):
         "tmp": PhysioEncoder(**model_cfg["encoders"]["tmp"])
     }
 
+    # ------------------------
+    # 2. RELIABILITY GATING
+    # ------------------------
+    reliability_score = ReliabilityGating(
+        emb_dim=model_cfg["reliability_score"]["emb_dim"],
+        num_modalities=model_cfg["reliability_score"]["num_modalities"],
+        init_lambda=model_cfg["reliability_score"]["init_lambda"]
+    )
+    
     # ----------------------
-    # 2. SELECTOR
+    # 3. SELECTOR
     # ----------------------
     selector = DirectedContrastiveSelector(
         top_k=model_cfg["selector"]["top_k"],
@@ -43,13 +53,13 @@ def build_model(cfg_path):
     )
 
     # ----------------------
-    # 3. FUSION
+    # 4. FUSION
     # ----------------------
     cross_modal_block = CrossModalBlock()
     fusion = DirectedFusion(cross_modal_block)
 
     # ----------------------
-    # 4. GRAPH EMBEDDING
+    # 5. GRAPH EMBEDDING
     # ----------------------
     graph_embedding = GraphEmbedding(
         dim=128,
@@ -57,7 +67,7 @@ def build_model(cfg_path):
     )
 
     # ----------------------
-    # 5. TASK HEAD
+    # 6. TASK HEAD
     # ----------------------
     task_head = TaskHead(
         input_dim=128,
@@ -66,6 +76,7 @@ def build_model(cfg_path):
 
     return FullModel(
         encoders=encoders,
+        reliability_score=reliability_score,
         selector=selector,
         fusion=fusion,
         graph_embedding=graph_embedding,

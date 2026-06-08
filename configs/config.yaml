@@ -17,6 +17,11 @@ model:
     tmp:
       emb_dim: 128
 
+  reliability_score:
+    emb_dim: 128
+    num_modalities: 5
+    init_lambda: 0.1
+
   selector:
     type: contrastive
     top_k: 2

@@ -7,6 +7,7 @@ class FullModel(nn.Module):
     def __init__(
         self,
         encoders,
+        reliability_score,
         selector,
         fusion,
         graph_embedding,
@@ -15,6 +16,7 @@ class FullModel(nn.Module):
         super().__init__()
 
         self.encoders = nn.ModuleDict(encoders)
+        self.reliability_score = reliability_score
         self.selector = selector
         self.fusion = fusion
         self.graph_embedding = graph_embedding
@@ -39,23 +41,28 @@ class FullModel(nn.Module):
         embeddings = torch.stack(embeddings, dim=1)
 
         # ------------------------
-        # 2. SELECTOR (GRAPH)
+        # 2. RELIABILITY GATING
+        # ------------------------
+        embeddings, r = self.reliability_score(embeddings, batch["signal_quality"])
+
+        # ------------------------
+        # 3. SELECTOR (GRAPH)
         # ------------------------
         scores, edges = self.selector(embeddings)
 
         # ------------------------
-        # 3. FUSION (DIRECTED)
+        # 4. FUSION (DIRECTED)
         # ------------------------
         fused_embeddings = self.fusion(
             embeddings, scores, edges
         )
 
         # ------------------------
-        # 4. GRAPH EMBEDDING (READOUT)
+        # 5. GRAPH EMBEDDING (READOUT)
         # ------------------------
         graph_emb = self.graph_embedding(fused_embeddings)
         # ------------------------
-        # 5. TASK HEAD
+        # 6. TASK HEAD
         # ------------------------
         preds = self.task_head(graph_emb)
 

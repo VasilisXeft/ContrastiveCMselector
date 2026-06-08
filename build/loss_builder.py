@@ -1,6 +1,7 @@
 from losses.contrastive import info_nce
 from losses.graph_loss import graph_loss_batch
 from losses.task_loss import FocalLoss
+from losses.reliability_loss import ReliabilityLoss
 
 
 def build_losses(cfg):
@@ -16,4 +17,6 @@ def build_losses(cfg):
 
     loss_graph = graph_loss_batch
 
-    return task_losses, contrastive_loss, loss_graph, loss_cfg
+    loss_rel = ReliabilityLoss
+
+    return task_losses, contrastive_loss, loss_graph, loss_rel, loss_cfg
