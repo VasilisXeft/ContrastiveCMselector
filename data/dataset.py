@@ -7,11 +7,12 @@ import torch
 
 class MultimodalDataset:
 
-    def __init__(self, subject_list, data_path, video_path, window_size=5, fs=256):
+    def __init__(self, subject_list, data_path, video_path, trial_indices=None, window_size=5, fs=256):
 
         self.subject_list = subject_list
         self.data_path = data_path
         self.video_path = video_path
+        self.trial_indices = trial_indices
 
         self.window_size = window_size
         self.fs = fs
@@ -33,7 +34,12 @@ class MultimodalDataset:
 
             num_trials = eeg.shape[0]
 
-            for t in range(0, num_trials):
+            if trial_indices is None:
+                trials = range(num_trials)
+            else:
+                trials = trial_indices
+
+            for t in trials:
 
                 T = eeg.shape[-1]
 
