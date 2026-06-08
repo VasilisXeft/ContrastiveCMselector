@@ -8,6 +8,7 @@ class LossRouter:
         task_losses: dict,
         contrastive_loss,
         graph_loss,
+        reliability_loss,
         lambda_cfg: dict
     ):
 
@@ -30,6 +31,7 @@ class LossRouter:
         self.task_losses = task_losses
         self.contrastive_loss = contrastive_loss
         self.graph_loss = graph_loss
+        self.reliability_loss = reliability_loss
 
         self.lambda_cfg = lambda_cfg
 
@@ -65,14 +67,13 @@ class LossRouter:
         # =====================================================
         # 2. CONTRASTIVE LOSS
         # =====================================================
-        '''
-        contrastive_loss = self.contrastive_loss(
-            model_out["graph_emb"],
-            batch["graph_emb_pos"]
-        )
-        '''
-
-        contrastive_loss = 0.0
+        try:
+            contrastive_loss = self.contrastive_loss(
+                model_out["graph_emb"],
+                batch["graph_emb_pos"]
+            )
+        except:
+            contrastive_loss = 0.0
         total_loss += self.lambda_cfg["contrastive"] * contrastive_loss
 
         try:

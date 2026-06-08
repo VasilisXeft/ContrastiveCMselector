@@ -131,13 +131,27 @@ class MultimodalDataset:
                 "arousal": torch.tensor(data["labels"][trial][1] >= 5.0, dtype=torch.float)
             }
 
+            q_eeg = 1 / (eeg.std(dim=-1).mean(dim=-1) + 1e-6)
+            q_ppg = torch.diff(ppg, dim=-1).std(dim=-1)
+            q_eda = torch.diff(eda, dim=-1).abs().mean(dim=-1)
+            q_tmp = tmp.std(dim=-1)
+            q_video = 0.0
+
+            quality_vector = torch.tensor([q_video, q_eeg, q_ppg, q_eda, q_tmp], dtype=torch.float)
+
+            # Safe MinMax Normalization
+            min_val = quality_vector.min()
+            max_val = quality_vector.max()
+            quality_vector = (quality_vector - min_val) / (max_val - min_val + 1e-6)
+
             return {
-                "face": video,     # [T, 3, H, W]
-                "eeg": eeg,        # [C, T]
-                "ppg": ppg,  # [C, T] or [T]
-                "eda": eda,  # [C, T] or [T]
-                "tmp": tmp,  # [C, T] or [T]
+                "face": video,  # Python Generator object
+                "eeg": eeg,  # [32, T]
+                "ppg": ppg,  # [T]
+                "eda": eda,  # [T]
+                "tmp": tmp,  # [T]
                 "targets": label,
+                "signal_quality": quality_vector,  # Tensor [M,]
                 "subject": subject
             }
 
