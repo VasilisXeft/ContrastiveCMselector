@@ -74,6 +74,8 @@ class VisualEncoder(nn.Module):
         self.frame_encoder = FaceMobileNetEncoder(emb_dim)
         for p in self.frame_encoder.features.parameters():
             p.requires_grad = False
+        for p in self.frame_encoder.features[-2:].parameters():
+            p.requires_grad = True
 
         self.temp_attn = TemporalAttentionPooling(emb_dim)
     def forward(self, x, mask=None):
