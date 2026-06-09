@@ -7,6 +7,7 @@ class FullModel(nn.Module):
     def __init__(
         self,
         encoders,
+        modality_dropout,
         reliability_score,
         selector,
         fusion,
@@ -16,6 +17,7 @@ class FullModel(nn.Module):
         super().__init__()
 
         self.encoders = nn.ModuleDict(encoders)
+        self.modality_dropout = modality_dropout
         self.reliability_score = reliability_score
         self.selector = selector
         self.fusion = fusion
@@ -27,6 +29,7 @@ class FullModel(nn.Module):
         # ------------------------
         # 1. ENCODERS
         # ------------------------
+
         embeddings = []
 
         embeddings_dict = {}
@@ -41,34 +44,47 @@ class FullModel(nn.Module):
         embeddings = torch.stack(embeddings, dim=1)
 
         # ------------------------
-        # 2. RELIABILITY GATING
+        # 2. MODALITY DROPOUT
         # ------------------------
+
+        embeddings = self.modality_dropout(embeddings)
+
+        # ------------------------
+        # 3. RELIABILITY GATING
+        # ------------------------
+
         embeddings, r = self.reliability_score(embeddings, batch["signal_quality"])
 
         # ------------------------
-        # 3. SELECTOR (GRAPH)
+        # 4. SELECTOR (GRAPH)
         # ------------------------
+
         scores, edges = self.selector(embeddings)
 
         # ------------------------
-        # 4. FUSION (DIRECTED)
+        # 5. FUSION (DIRECTED)
         # ------------------------
+
         fused_embeddings = self.fusion(
             embeddings, scores, edges
         )
 
         # ------------------------
-        # 5. GRAPH EMBEDDING (READOUT)
+        # 6. GRAPH EMBEDDING (READOUT)
         # ------------------------
+
         graph_emb = self.graph_embedding(fused_embeddings)
+
         # ------------------------
-        # 6. TASK HEAD
+        # 7. TASK HEAD
         # ------------------------
+
         preds = self.task_head(graph_emb)
 
         # ------------------------
         # OUTPUT CONTRACT
         # ------------------------
+
         return {
             "pred": preds,
             "graph_emb": graph_emb,

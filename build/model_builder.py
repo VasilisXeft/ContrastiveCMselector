@@ -1,6 +1,7 @@
 import yaml
 import torch.nn as nn
 
+from models import modality_dropout
 from models.full_model import FullModel
 from models.graph_embedding import GraphEmbedding
 from models.task_head import TaskHead
@@ -15,6 +16,7 @@ from models.selector import DirectedContrastiveSelector
 from models.reliability_score import ReliabilityGating
 from models.fusion import DirectedFusion
 from models.cross_modal import CrossModalBlock
+from models.modality_dropout import ModalityDropout
 
 
 def build_model(cfg_path):
@@ -36,16 +38,21 @@ def build_model(cfg_path):
     }
 
     # ------------------------
-    # 2. RELIABILITY GATING
+    # 2. MODALITY DROPOUT
+    # ------------------------
+    modality_dropout = ModalityDropout(**model_cfg["modality_dropout"])
+
+    # ------------------------
+    # 3. RELIABILITY GATING
     # ------------------------
     reliability_score = ReliabilityGating(
         emb_dim=model_cfg["reliability_score"]["emb_dim"],
         num_modalities=model_cfg["reliability_score"]["num_modalities"],
         init_lambda=model_cfg["reliability_score"]["init_lambda"]
     )
-    
+
     # ----------------------
-    # 3. SELECTOR
+    # 4. SELECTOR
     # ----------------------
     selector = DirectedContrastiveSelector(
         top_k=model_cfg["selector"]["top_k"],
@@ -53,13 +60,13 @@ def build_model(cfg_path):
     )
 
     # ----------------------
-    # 4. FUSION
+    # 5. FUSION
     # ----------------------
     cross_modal_block = CrossModalBlock()
     fusion = DirectedFusion(cross_modal_block)
 
     # ----------------------
-    # 5. GRAPH EMBEDDING
+    # 6. GRAPH EMBEDDING
     # ----------------------
     graph_embedding = GraphEmbedding(
         dim=128,
@@ -67,7 +74,7 @@ def build_model(cfg_path):
     )
 
     # ----------------------
-    # 6. TASK HEAD
+    # 7. TASK HEAD
     # ----------------------
     task_head = TaskHead(
         input_dim=128,
@@ -76,6 +83,7 @@ def build_model(cfg_path):
 
     return FullModel(
         encoders=encoders,
+        modality_dropout=modality_dropout,
         reliability_score=reliability_score,
         selector=selector,
         fusion=fusion,
