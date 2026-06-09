@@ -9,7 +9,7 @@ class DirectedContrastiveSelector(nn.Module):
     i -> j edges are asymmetric and learned.
     """
 
-    def __init__(self, dim=128, proj_dim=128, hidden=256, temperature=0.1, top_k=2):
+    def __init__(self, dim=64, proj_dim=64, hidden=128, temperature=0.1, top_k=2):
         super().__init__()
 
         self.top_k = top_k

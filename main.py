@@ -102,12 +102,13 @@ def main():
                 model, cfg = build_model("configs/config.yaml")
                 model = model.to(device)
 
-                task_losses, contrastive_loss, graph_loss, loss_cfg = build_losses(cfg)
+                task_losses, contrastive_loss, graph_loss, rel_loss, loss_cfg = build_losses(cfg)
 
                 loss_router = LossRouter(
                     task_losses=task_losses,
                     contrastive_loss=contrastive_loss,
                     graph_loss=graph_loss,
+                    reliability_loss=rel_loss,
                     lambda_cfg=loss_cfg
                 )
 

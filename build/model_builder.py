@@ -69,7 +69,7 @@ def build_model(cfg_path):
     # 6. GRAPH EMBEDDING
     # ----------------------
     graph_embedding = GraphEmbedding(
-        dim=128,
+        dim=64,
         method=model_cfg["graph_embedding"]["type"]
     )
 
@@ -77,7 +77,7 @@ def build_model(cfg_path):
     # 7. TASK HEAD
     # ----------------------
     task_head = TaskHead(
-        input_dim=128,
+        input_dim=64,
         task_config=model_cfg["task_head"]
     )
 
