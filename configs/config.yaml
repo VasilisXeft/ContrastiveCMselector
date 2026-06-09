@@ -18,7 +18,7 @@ model:
       emb_dim: 64
 
   modality_dropout:
-    p: 0.2
+    p: 0.15
 
   reliability_score:
     emb_dim: 64
