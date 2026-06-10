@@ -18,7 +18,7 @@ class ReliabilityGating(nn.Module):
         ])
 
         self.lambda_param = nn.Parameter(
-            torch.tensor(init_lambda)
+            torch.ones(num_modalities) * init_lambda
         )
 
     def forward(self, embeddings, signal_quality):
@@ -38,12 +38,10 @@ class ReliabilityGating(nn.Module):
 
         proj = torch.cat(scores, dim=1)
 
-        lambda_param = F.softplus(
-            self.lambda_param
-        )
+        lambda_param = F.softplus(self.lambda_param)
 
         r = torch.sigmoid(
-            proj - lambda_param * signal_quality
+            proj - lambda_param.unsqueeze(0) * signal_quality
         )
 
         gated_embeddings = (

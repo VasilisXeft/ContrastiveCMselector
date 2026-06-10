@@ -11,6 +11,7 @@ from training.trainer import Trainer
 from data.dataset import MultimodalDataset
 from data.split import get_loso_splits, get_group_kfold_splits, get_subject_dependent_splits
 from data.collate import collate_fn
+from torch.optim.lr_scheduler import ReduceLROnPlateau
 
 DATA_PATH = r"C:/Users/vxefteris/Desktop/D/MindSpaces/DEAP Dataset/data_preprocessed_python/data_preprocessed_python"
 VIDEO_PATH = r"C:/Users/vxefteris/Desktop/D/MindSpaces/DEAP Dataset/face_video"
@@ -132,12 +133,20 @@ def main():
                     weight_decay=cfg["training"]["weight_decay"]
                 )
 
+                scheduler = ReduceLROnPlateau(
+                    optimizer,
+                    mode='min',
+                    factor=0.1,
+                    patience=2
+                )
+
                 trainer = Trainer(
                     model=model,
                     optimizer=optimizer,
                     loss_router=loss_router,
                     train_loader=train_loader,
                     val_loader=test_loader,
+                    scheduler=scheduler,
                     device="cuda"
                 )
 
@@ -192,12 +201,20 @@ def main():
                 weight_decay=cfg["training"]["weight_decay"]
             )
 
+            scheduler = ReduceLROnPlateau(
+                optimizer,
+                mode='min',
+                factor=0.1,
+                patience=2
+            )
+
             trainer = Trainer(
                 model=model,
                 optimizer=optimizer,
                 loss_router=loss_router,
                 train_loader=train_loader,
                 val_loader=test_loader,
+                scheduler=scheduler,
                 device="cuda"
             )
 

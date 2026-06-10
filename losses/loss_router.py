@@ -101,7 +101,7 @@ class LossRouter:
         # 4. RELIABILITY LOSS
         # =====================================================
 
-        reliability_loss = self.reliability_loss(model_out["reliability_score"])
+        reliability_loss = self.reliability_loss(model_out["reliability_score"], batch["signal_quality"])
         total_loss += self.lambda_cfg["reliability"] * reliability_loss
 
         try:

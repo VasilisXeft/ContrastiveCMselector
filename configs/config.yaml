@@ -37,27 +37,24 @@ model:
     type: attention   # mean | sum | concat | attention
 
   task_head:
-    type: multi_output
+    type: single_output
 
     outputs:
       valence:
         type: multiclass
         output_dim: 1
 
-      arousal:
-        type: multiclass
-        output_dim: 1
 
 
 loss:
   task: 1.0
   contrastive: 0.5
-  graph: 0.1
-  reliability: 0.1
+  graph: 0.5
+  reliability: 0.5
 
 training:
   batch_size: 36
-  lr: 0.0001
+  lr: 0.001
   weight_decay: 0.01
   epochs: 50
   grad_clip: 5.0

@@ -48,12 +48,14 @@ class Trainer:
         loss_router,
         train_loader,
         val_loader=None,
+        scheduler=None,
         device="cuda"
     ):
 
         self.model = model
         self.optimizer = optimizer
         self.loss_router = loss_router
+        self.scheduler = scheduler
 
         self.train_loader = train_loader
         self.val_loader = val_loader
@@ -64,7 +66,8 @@ class Trainer:
             "train_loss": [],
             "val_loss": [],
             "train_metrics": [],
-            "val_metrics": []
+            "val_metrics": [],
+            "lr": []
         }
 
         self.model.to(self.device)
@@ -91,6 +94,9 @@ class Trainer:
 
             print(f"\nEpoch {epoch+1}/{epochs}")
 
+            current_lr = self.optimizer.param_groups[0]['lr']
+            self.history["lr"].append(current_lr)
+
             train_loss, train_preds, train_targets = self.train_epoch()
             train_metrics = compute_epoch_metrics(train_preds, train_targets)
 
@@ -108,7 +114,22 @@ class Trainer:
                 self.history["val_loss"].append(val_loss)
                 self.history["val_metrics"].append(val_metrics)
 
+                if isinstance(val_loss, dict) and "val_loss" in val_loss:
+                    val_loss_val = val_loss["val_loss"]
+                elif isinstance(val_loss, dict):
+                    val_loss_val = next(iter(val_loss.values()))
+
         self.save_history(log_pth)
+
+        if self.scheduler is not None:
+            if isinstance(self.scheduler, torch.optim.lr_scheduler.ReduceLROnPlateau):
+                if val_loss_val is not None:
+                    self.scheduler.step(val_loss_val)
+                else:
+                    train_loss_val = next(iter(train_loss.values())) if isinstance(train_loss, dict) else train_loss
+                    self.scheduler.step(train_loss_val)
+            else:
+                self.scheduler.step()
 
 
     def train_epoch(self):
@@ -117,8 +138,8 @@ class Trainer:
 
         epoch_logs = []
 
-        all_preds = {"valence": [], "arousal": []}
-        all_targets = {"valence": [], "arousal": []}
+        all_preds = {"valence": []}
+        all_targets = {"valence": []}
 
         for batch in tqdm(self.train_loader):
             if batch is None:
@@ -151,8 +172,8 @@ class Trainer:
 
         epoch_logs = []
 
-        all_preds = {"valence": [], "arousal": []}
-        all_targets = {"valence": [], "arousal": []}
+        all_preds = {"valence": []}
+        all_targets = {"valence": []}
 
         with torch.no_grad():
 
