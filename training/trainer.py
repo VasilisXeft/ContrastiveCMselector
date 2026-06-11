@@ -1,6 +1,6 @@
 import torch
 from tqdm import tqdm
-from sklearn.metrics import balanced_accuracy_score, f1_score
+from sklearn.metrics import accuracy_score, f1_score
 import torch
 
 from training.train_step import train_step, move_batch_to_device
@@ -33,7 +33,7 @@ def compute_epoch_metrics(all_preds, all_targets):
         y_pred = torch.cat(all_preds[task]).cpu().numpy()
         y_true = torch.cat(all_targets[task]).cpu().numpy()
 
-        metrics[f"{task}_bal_acc"] = balanced_accuracy_score(y_true, y_pred)
+        metrics[f"{task}_bal_acc"] = accuracy_score(y_true, y_pred)
         metrics[f"{task}_f1_score"] = f1_score(y_true, y_pred)
 
     return metrics
