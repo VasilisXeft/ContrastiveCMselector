@@ -59,7 +59,7 @@ class LossRouter:
 
             task_loss += loss
 
-            logs[f"loss_{task_name}"] = loss.item()
+            # logs[f"loss_{task_name}"] = loss.item()
 
         total_loss += self.lambda_cfg["task"] * task_loss
         logs["task_loss"] = task_loss.item()

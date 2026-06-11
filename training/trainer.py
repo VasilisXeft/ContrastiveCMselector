@@ -33,8 +33,8 @@ def compute_epoch_metrics(all_preds, all_targets):
         y_pred = torch.cat(all_preds[task]).cpu().numpy()
         y_true = torch.cat(all_targets[task]).cpu().numpy()
 
-        metrics[f"{task}_bal_acc"] = accuracy_score(y_true, y_pred)
-        metrics[f"{task}_f1_score"] = f1_score(y_true, y_pred)
+        metrics[f"{task}_acc"] = accuracy_score(y_true, y_pred)
+        metrics[f"{task}_f1"] = f1_score(y_true, y_pred)
 
     return metrics
 
@@ -99,7 +99,15 @@ class Trainer:
             train_loss, train_preds, train_targets = self.train_epoch()
             train_metrics = compute_epoch_metrics(train_preds, train_targets)
 
-            print("Train:", train_loss, train_metrics)
+            print(
+                f"Train | "
+                f"loss={train_loss['total_loss']:.4f} | "
+                f"task={train_loss['task_loss']:.4f} | "
+                f"graph={train_loss['graph_loss']:.4f} | "
+                f"rel={train_loss['reliability_loss']:.4f} | "
+                f"acc={train_metrics['valence_acc']:.4f} | "
+                f"f1={train_metrics['valence_f1']:.4f}"
+            )
 
             self.history["train_loss"].append(train_loss)
             self.history["train_metrics"].append(train_metrics)
@@ -108,7 +116,16 @@ class Trainer:
                 val_loss, val_preds, val_targets = self.validate()
                 val_metrics = compute_epoch_metrics(val_preds, val_targets)
 
-                print("Val:", val_loss, val_metrics)
+                print(
+                    f"Val   | "
+                    f"loss={val_loss['total_loss']:.4f} | "
+                    f"task={val_loss['task_loss']:.4f} | "
+                    f"graph={val_loss['graph_loss']:.4f} | "
+                    f"rel={val_loss['reliability_loss']:.4f} | "
+                    f"acc={val_metrics['valence_acc']:.4f} | "
+                    f"f1={val_metrics['valence_f1']:.4f} | "
+                    f"lr={self.optimizer.param_groups[0]['lr']:.6f}"
+                )
 
                 self.history["val_loss"].append(val_loss)
                 self.history["val_metrics"].append(val_metrics)
@@ -186,8 +203,6 @@ class Trainer:
                 outputs = self.model(batch)
 
                 loss, logs = self.loss_router.compute(outputs, batch)
-
-                logs["val_loss"] = loss.item()
 
                 epoch_logs.append(logs)
 

@@ -38,3 +38,17 @@ class FocalLoss(nn.Module):
         loss = alpha_t * (1 - pt) ** self.gamma * bce
 
         return loss.mean()
+
+class BinaryCrossEntropyLoss(nn.Module):
+    def __init__(self):
+        super().__init__()
+
+        self.binary_cross_entropy_loss = nn.BCELoss(reduction="none")
+
+    def forward(self, logits, targets):
+
+        probs = torch.sigmoid(logits)
+
+        bce = self.binary_cross_entropy_loss(probs, targets)
+
+        return bce.mean()

@@ -136,8 +136,8 @@ def main():
                 scheduler = ReduceLROnPlateau(
                     optimizer,
                     mode='min',
-                    factor=0.1,
-                    patience=2
+                    factor=0.05,
+                    patience=3
                 )
 
                 trainer = Trainer(
@@ -204,8 +204,8 @@ def main():
             scheduler = ReduceLROnPlateau(
                 optimizer,
                 mode='min',
-                factor=0.1,
-                patience=2
+                factor=0.05,
+                patience=3
             )
 
             trainer = Trainer(
