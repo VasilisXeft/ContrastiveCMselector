@@ -119,17 +119,19 @@ class Trainer:
                 elif isinstance(val_loss, dict):
                     val_loss_val = next(iter(val_loss.values()))
 
+            if self.scheduler is not None:
+                if isinstance(self.scheduler, torch.optim.lr_scheduler.ReduceLROnPlateau):
+                    if val_loss_val is not None:
+                        self.scheduler.step(val_loss_val)
+                    else:
+                        train_loss_val = next(iter(train_loss.values())) if isinstance(train_loss, dict) else train_loss
+                        self.scheduler.step(train_loss_val)
+                else:
+                    self.scheduler.step()
+
         self.save_history(log_pth)
 
-        if self.scheduler is not None:
-            if isinstance(self.scheduler, torch.optim.lr_scheduler.ReduceLROnPlateau):
-                if val_loss_val is not None:
-                    self.scheduler.step(val_loss_val)
-                else:
-                    train_loss_val = next(iter(train_loss.values())) if isinstance(train_loss, dict) else train_loss
-                    self.scheduler.step(train_loss_val)
-            else:
-                self.scheduler.step()
+
 
 
     def train_epoch(self):
