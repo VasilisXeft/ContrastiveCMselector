@@ -94,9 +94,6 @@ class Trainer:
 
             print(f"\nEpoch {epoch+1}/{epochs}")
 
-            current_lr = self.optimizer.param_groups[0]['lr']
-            self.history["lr"].append(current_lr)
-
             train_loss, train_preds, train_targets = self.train_epoch()
             train_metrics = compute_epoch_metrics(train_preds, train_targets)
 
@@ -129,9 +126,10 @@ class Trainer:
                 else:
                     self.scheduler.step()
 
+            current_lr = self.optimizer.param_groups[0]['lr']
+            self.history["lr"].append(current_lr)
+
         self.save_history(log_pth)
-
-
 
 
     def train_epoch(self):
