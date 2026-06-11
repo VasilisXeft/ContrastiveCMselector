@@ -90,6 +90,8 @@ class Trainer:
 
     def fit(self, epochs, log_pth=None):
 
+        val_loss_val = None
+
         for epoch in range(epochs):
 
             print(f"\nEpoch {epoch+1}/{epochs}")
