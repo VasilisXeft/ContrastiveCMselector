@@ -48,4 +48,4 @@ class DirectedFusion(nn.Module):
 
             outputs.append(fused)
 
-        return outputs
+        return torch.stack(outputs, dim=1)

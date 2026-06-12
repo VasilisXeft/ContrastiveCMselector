@@ -34,12 +34,6 @@ def train_step(
     # --------------------------
     loss.backward()
 
-    # Μετά το backward()
-    for name, param in model.named_parameters():
-        if param.requires_grad and param.grad is not None:
-            if param.grad.abs().sum() == 0:
-                print(f"⚠️ ΠΡΟΣΟΧΗ: Το layer {name} έχει μηδενικό gradient!")
-
     # (optional stability trick)
     torch.nn.utils.clip_grad_norm_(
         model.parameters(),
