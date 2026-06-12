@@ -105,8 +105,10 @@ class Trainer:
                 f"task={train_loss['task_loss']:.4f} | "
                 f"graph={train_loss['graph_loss']:.4f} | "
                 f"rel={train_loss['reliability_loss']:.4f} | "
-                f"acc={train_metrics['valence_acc']:.4f} | "
-                f"f1={train_metrics['valence_f1']:.4f}"
+                f"acc_val={train_metrics['valence_acc']:.4f} | "
+                f"f1_val={train_metrics['valence_f1']:.4f} | "
+                f"acc_aro={train_metrics['arousal_acc']:.4f} | "
+                f"f1_aro={train_metrics['arousal_f1']:.4f} | "
             )
 
             self.history["train_loss"].append(train_loss)
@@ -122,8 +124,10 @@ class Trainer:
                     f"task={val_loss['task_loss']:.4f} | "
                     f"graph={val_loss['graph_loss']:.4f} | "
                     f"rel={val_loss['reliability_loss']:.4f} | "
-                    f"acc={val_metrics['valence_acc']:.4f} | "
-                    f"f1={val_metrics['valence_f1']:.4f} | "
+                    f"acc_val={val_metrics['valence_acc']:.4f} | "
+                    f"f1_val={val_metrics['valence_f1']:.4f} | "
+                    f"acc_aro={val_metrics['arousal_acc']:.4f} | "
+                    f"f1_aro={val_metrics['arousal_f1']:.4f} | "
                     f"lr={self.optimizer.param_groups[0]['lr']:.6f}"
                 )
 
@@ -157,8 +161,8 @@ class Trainer:
 
         epoch_logs = []
 
-        all_preds = {"valence": []}
-        all_targets = {"valence": []}
+        all_preds = {"valence":[], "arousal": []}
+        all_targets = {"valence":[], "arousal": []}
 
         for batch in tqdm(self.train_loader):
             if batch is None:
@@ -191,8 +195,8 @@ class Trainer:
 
         epoch_logs = []
 
-        all_preds = {"valence": []}
-        all_targets = {"valence": []}
+        all_preds = {"valence":[], "arousal": []}
+        all_targets = {"valence":[], "arousal": []}
 
         with torch.no_grad():
 

@@ -1,8 +1,15 @@
+import glob
 import os
 import pickle
+import xml.etree.ElementTree as ET
 
 import cv2
+import mne
+import numpy as np
+import pandas as pd
 import torch
+from scipy.signal import resample
+from torch.utils.data import Dataset
 
 
 class MultimodalDataset:
@@ -153,3 +160,416 @@ class MultimodalDataset:
             }
 
         return None
+
+
+def resample_fixed(data_chunk, target_length):
+    """
+    Resample along time axis.
+    Input:
+        [T]
+        [T,C]
+    Output:
+        [target_length]
+        [target_length,C]
+    """
+
+    if len(data_chunk) == 0:
+        return np.zeros((target_length,), dtype=np.float32)
+
+    return resample(data_chunk, target_length, axis=0)
+
+
+class MAHNOBMultimodalDataset(Dataset):
+
+    def __init__(
+            self,
+            base_path,
+            subjects_to_keep,
+            window_sec=30,
+            stride_sec=15,
+            len_eeg=256 * 30,
+            len_ecg=256 * 30,
+            len_eda=256 * 30,
+            len_tmp=256 * 30,
+            len_rsp=256 * 30,
+            len_eye=60 * 30
+    ):
+
+        self.base_path = base_path
+        self.subjects_to_keep = subjects_to_keep
+
+        self.window_sec = window_sec
+        self.stride_sec = stride_sec
+
+        self.lengths = {
+            "eeg": len_eeg,
+            "ecg": len_ecg,
+            "eda": len_eda,
+            "tmp": len_tmp,
+            "rsp": len_rsp,
+            "eye": len_eye
+        }
+
+        self.all_samples = []
+
+        search_pattern = os.path.join(base_path, "*", "session.xml")
+        xml_files = glob.glob(search_pattern)
+
+        if len(xml_files) == 0:
+            raise ValueError(
+                f"No session.xml files found under {base_path}"
+            )
+
+        print(f"Found {len(xml_files)} sessions.")
+
+        for xml_path in xml_files:
+
+            folder_path = os.path.dirname(xml_path)
+
+            try:
+                root = ET.parse(xml_path).getroot()
+
+                subject_id = int(root.find("subject").attrib["id"])
+                session_id = int(root.attrib["sessionId"])
+                labels = {
+                    "valence": int(int(root.attrib["feltVlnc"]) > 5),
+                    "arousal": int(int(root.attrib["feltArsl"]) > 5)
+                }
+
+            except Exception:
+                continue
+
+            if subject_id not in subjects_to_keep:
+                continue
+
+            data_dict, labels = self._process_session(folder_path, labels)
+
+            if data_dict is None:
+                continue
+
+            n_windows = len(labels)
+
+            for i in range(n_windows):
+
+                self.all_samples.append({
+
+                    "eeg": data_dict["eeg"][i],
+                    "ecg": data_dict["ecg"][i],
+                    "eda": data_dict["eda"][i],
+                    "tmp": data_dict["tmp"][i],
+                    "rsp": data_dict["rsp"][i],
+                    "eye": data_dict["eye"][i],
+
+                    "signal_quality":
+                        data_dict["signal_quality"][i],
+
+                    "label": labels[i],
+
+                    "subject_id": subject_id,
+                    "session_id": session_id
+                })
+
+        print(
+            f"Loaded {len(self.all_samples)} windows "
+            f"from {len(subjects_to_keep)} subjects."
+        )
+
+    def _process_session(self, folder_path, label):
+
+        bdf_files = glob.glob(os.path.join(folder_path, "*.bdf"))
+
+        eye_files = glob.glob(
+            os.path.join(folder_path,
+                         "*All-Data*Section_*.tsv")
+        )
+
+        if len(bdf_files) == 0:
+            print(folder_path, "NO BDF")
+
+        if len(eye_files) == 0:
+            print(folder_path, "NO EYE")
+
+        if (
+                len(bdf_files) == 0 or
+                len(eye_files) == 0
+        ):
+            return None, None
+
+        #################################
+        # EYE
+        #################################
+
+        try:
+
+            header_row = 0
+
+            with open(
+                    eye_files[0],
+                    "r",
+                    encoding="utf-8",
+                    errors="ignore"
+            ) as f:
+
+                for i, line in enumerate(f):
+
+                    if (
+                            "Timestamp" in line and
+                            "GazePoint" in line
+                    ):
+                        header_row = i
+                        break
+
+            df_eye = pd.read_csv(
+                eye_files[0],
+                sep="\t",
+                skiprows=header_row
+            )
+
+            pupil = df_eye[
+                [c for c in df_eye.columns
+                 if "Pupil" in c][0]
+            ].values
+
+            gx = df_eye[
+                [c for c in df_eye.columns
+                 if "GazePointX" in c][0]
+            ].values
+
+            gy = df_eye[
+                [c for c in df_eye.columns
+                 if "GazePointY" in c][0]
+            ].values
+
+            raw_eye = np.nan_to_num(
+                np.column_stack((pupil, gx, gy))
+            )
+
+        except Exception:
+            return None, None
+
+        #################################
+        # PHYSIO
+        #################################
+
+        try:
+
+            raw = mne.io.read_raw_bdf(
+                bdf_files[0],
+                preload=True,
+                verbose=False
+            )
+
+            fs_physio = raw.info["sfreq"]
+            fs_eye = 60.0
+
+            eeg = raw.copy().pick(
+                raw.ch_names[:32]
+            ).get_data().T
+
+            ecg = raw.copy().pick(
+                ["EXG1", "EXG2", "EXG3"]
+            ).get_data().T
+
+            eda = raw.copy().pick(
+                ["GSR1"]
+            ).get_data().T
+
+            rsp = raw.copy().pick(
+                ["Resp"]
+            ).get_data().T
+
+            tmp = raw.copy().pick(
+                ["Temp"]
+            ).get_data().T
+
+        except Exception:
+            return None, None
+
+        #################################
+        # WINDOWING
+        #################################
+
+        duration = min(
+            len(eeg) / fs_physio,
+            len(raw_eye) / fs_eye
+        )
+
+        data_dict = {
+            "eeg": [],
+            "ecg": [],
+            "eda": [],
+            "tmp": [],
+            "rsp": [],
+            "eye": [],
+            "signal_quality": []
+        }
+
+        labels = []
+
+        for t in np.arange(
+                0,
+                duration - self.window_sec,
+                self.stride_sec
+        ):
+
+            p_start = int(t * fs_physio)
+            p_end = int((t + self.window_sec) * fs_physio)
+
+            e_start = int(t * fs_eye)
+            e_end = int((t + self.window_sec) * fs_eye)
+
+            eeg_chunk = eeg[p_start:p_end]
+            eye_chunk = raw_eye[e_start:e_end]
+
+            if len(eeg_chunk) == 0:
+                continue
+
+            if len(eye_chunk) == 0:
+                continue
+
+            ecg_chunk = ecg[p_start:p_end]
+            eda_chunk = eda[p_start:p_end]
+            tmp_chunk = tmp[p_start:p_end]
+            rsp_chunk = rsp[p_start:p_end]
+
+            eeg_t = torch.from_numpy(eeg_chunk).float()
+            ecg_t = torch.from_numpy(ecg_chunk).float()
+            eda_t = torch.from_numpy(eda_chunk).float()
+            rsp_t = torch.from_numpy(rsp_chunk).float()
+            tmp_t = torch.from_numpy(tmp_chunk).float()
+            eye_t = torch.from_numpy(eye_chunk).float()
+
+            #################################
+            # SIGNAL QUALITY
+            #################################
+
+            q_eeg = torch.diff(eeg_t, dim=0).std(dim=0).mean()
+
+            q_ecg = torch.diff(ecg_t, dim=0).std(dim=0).mean()
+
+            q_eda = torch.diff(eda_t, dim=0).abs().mean()
+
+            q_rsp = torch.diff(rsp_t, dim=0).std(dim=0).mean()
+
+            q_tmp = torch.diff(tmp_t, dim=0).abs().mean()
+
+            q_eye = torch.diff(eye_t, dim=0).std(dim=0).mean()
+
+            quality = np.array([
+                q_eeg,
+                q_ecg,
+                q_eda,
+                q_rsp,
+                q_tmp,
+                q_eye
+            ], dtype=np.float32)
+
+            #################################
+            # RESAMPLING
+            #################################
+
+            data_dict["eeg"].append(
+                resample_fixed(
+                    eeg_t,
+                    self.lengths["eeg"]
+                )
+            )
+
+            data_dict["ecg"].append(
+                resample_fixed(
+                    ecg_chunk,
+                    self.lengths["ecg"]
+                )
+            )
+
+            data_dict["eda"].append(
+                resample_fixed(
+                    eda_chunk,
+                    self.lengths["eda"]
+                )
+            )
+
+            data_dict["tmp"].append(
+                resample_fixed(
+                    tmp_chunk,
+                    self.lengths["tmp"]
+                )
+            )
+
+            data_dict["rsp"].append(
+                resample_fixed(
+                    rsp_chunk,
+                    self.lengths["rsp"]
+                )
+            )
+
+            data_dict["eye"].append(
+                resample_fixed(
+                    eye_chunk,
+                    self.lengths["eye"]
+                )
+            )
+
+            data_dict["signal_quality"].append(
+                quality
+            )
+
+            labels.append(label)
+
+        return data_dict, labels
+
+    def __len__(self):
+        return len(self.all_samples)
+
+    def __getitem__(self, idx):
+
+        sample = self.all_samples[idx]
+
+        return {
+
+        "eeg":
+            torch.from_numpy(
+                sample["eeg"]
+            ).float().T,
+
+        "ecg":
+            torch.from_numpy(
+                sample["ecg"]
+            ).float().T,
+
+        "eda":
+            torch.from_numpy(
+                sample["eda"]
+            ).float().T,
+
+        "tmp":
+            torch.from_numpy(
+                sample["tmp"]
+            ).float().T,
+
+        "rsp":
+            torch.from_numpy(
+                sample["rsp"]
+            ).float().T,
+
+        "eye":
+            torch.from_numpy(
+                sample["eye"]
+            ).float().T,
+
+        "signal_quality":
+            torch.from_numpy(
+                sample["signal_quality"]
+            ).float(),
+
+        "targets": {
+            "valence": torch.tensor(sample["label"]["valence"], dtype=torch.float),
+            "arousal": torch.tensor(sample["label"]["arousal"], dtype=torch.float)
+        },
+
+        "subject":
+            sample["subject_id"],
+
+        "session":
+            sample["session_id"]
+    }

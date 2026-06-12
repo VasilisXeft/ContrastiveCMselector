@@ -35,11 +35,13 @@ class FullModel(nn.Module):
         embeddings_dict = {}
 
         for name, encoder in self.encoders.items():
+            try:
+                z = encoder(batch[name])
 
-            z = encoder(batch[name])
-
-            embeddings.append(z)
-            embeddings_dict[name] = z
+                embeddings.append(z)
+                embeddings_dict[name] = z
+            except:
+                pass
 
         embeddings = torch.stack(embeddings, dim=1)
 

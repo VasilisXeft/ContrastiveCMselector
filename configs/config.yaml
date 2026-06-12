@@ -17,6 +17,17 @@ model:
     tmp:
       emb_dim: 64
 
+    rsp:
+      emb_dim: 64
+
+    eye:
+      in_ch: 3
+      emb_dim: 64
+
+    ecg:
+      in_ch: 3
+      emb_dim: 64
+
   modality_dropout:
     p: 0.15
 
@@ -41,6 +52,9 @@ model:
 
     outputs:
       valence:
+        type: multiclass
+        output_dim: 1
+      arousal:
         type: multiclass
         output_dim: 1
 

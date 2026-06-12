@@ -34,7 +34,10 @@ def build_model(cfg_path):
         "eeg": EEGNetEncoder(**model_cfg["encoders"]["eeg"]),
         "ppg": PhysioEncoder(**model_cfg["encoders"]["ppg"]),
         "eda": PhysioEncoder(**model_cfg["encoders"]["eda"]),
-        "tmp": PhysioEncoder(**model_cfg["encoders"]["tmp"])
+        "tmp": PhysioEncoder(**model_cfg["encoders"]["tmp"]),
+        "rsp": PhysioEncoder(**model_cfg["encoders"]["rsp"]),
+        "eye": PhysioEncoder(**model_cfg["encoders"]["eye"]),
+        "ecg": PhysioEncoder(**model_cfg["encoders"]["ecg"]),
     }
 
     # ------------------------

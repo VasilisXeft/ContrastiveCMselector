@@ -1,7 +1,7 @@
 import torch
 
 
-def collate_fn(batch):
+def collate_fn_deap(batch):
     batch = [b for b in batch if b is not None]
 
     if len(batch) == 0:
@@ -57,6 +57,65 @@ def collate_fn(batch):
 
     for key in batch[0]["targets"].keys():
 
+        targets[key] = torch.stack(
+            [b["targets"][key] for b in batch],
+            dim=0
+        )
+
+    out["targets"] = targets
+
+    return out
+
+
+def collate_fn_mahnob(batch):
+    batch = [b for b in batch if b is not None]
+
+    if len(batch) == 0:
+        return None
+
+    out = {}
+
+    # ----------------------
+    # EEG: [B, C, T]
+    # ----------------------
+    out["eeg"] = torch.stack([b["eeg"] for b in batch], dim=0)
+
+    # ----------------------
+    # ECG: [B, 3, T]
+    # ----------------------
+    out["ecg"] = torch.stack([b["ecg"] for b in batch], dim=0)
+
+    # ----------------------
+    # EDA: [B, ...]
+    # ----------------------
+    out["eda"] = torch.stack([b["eda"] for b in batch], dim=0)
+
+    # ----------------------
+    # TMP: [B, ...]
+    # ----------------------
+    out["tmp"] = torch.stack([b["tmp"] for b in batch], dim=0)
+
+    # ----------------------
+    # RSP: [B, ...]
+    # ----------------------
+    out["rsp"] = torch.stack([b["rsp"] for b in batch], dim=0)
+
+    # ----------------------
+    # EYE: [B, 3, T]
+    # ----------------------
+    out["eye"] = torch.stack([b["eye"] for b in batch], dim=0)
+
+    # ----------------------
+    # Signal quality: [B, ...]
+    # ----------------------
+    out["signal_quality"] = torch.stack([b["signal_quality"] for b in batch], dim=0)
+
+    # ----------------------
+    # TARGETS (DICT OF LISTS)
+    # ----------------------
+    targets = {}
+
+    for key in batch[0]["targets"].keys():
         targets[key] = torch.stack(
             [b["targets"][key] for b in batch],
             dim=0
