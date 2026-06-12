@@ -41,7 +41,7 @@ class FullModel(nn.Module):
                 embeddings.append(z)
                 embeddings_dict[name] = z
             except:
-                pass
+                continue
 
         embeddings = torch.stack(embeddings, dim=1)
 
