@@ -167,9 +167,11 @@ class PhysioEncoder(nn.Module):
         self.proj = nn.Linear(64, emb_dim)
 
     def forward(self, x):
-        # x: [B, T]
-        x = x.unsqueeze(1)
+        if x.dim() == 2: # x: [B, T]
+            x = x.unsqueeze(1)
+
         x = self.net(x)
         x = self.pool(x)
         x = x.squeeze(-1)
+
         return self.proj(x)  # [B, D]
