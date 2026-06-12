@@ -15,7 +15,12 @@ class DirectedFusion(nn.Module):
         # modality_embeddings:
         # list([B,D])
 
-        tokens = [m.unsqueeze(1) for m in modality_embeddings]
+        if torch.is_tensor(modality_embeddings):
+            modality_list = torch.unbind(modality_embeddings, dim=1)
+        else:
+            modality_list = modality_embeddings
+
+        tokens = [m.unsqueeze(1) for m in modality_list]
 
         M = len(tokens)
 
@@ -30,7 +35,7 @@ class DirectedFusion(nn.Module):
 
         for i in range(M):
             if len(incoming[i]) == 0:
-                outputs.append(modality_embeddings[i])
+                outputs.append(modality_list[i])
                 continue
 
             feats = torch.stack([x for x, _ in incoming[i]],dim=1)
