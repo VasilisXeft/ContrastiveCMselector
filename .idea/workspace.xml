@@ -2,14 +2,7 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="5ad51d33-04a0-4795-91c0-200f6fafc44b" name="Changes" comment="Update">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/build/model_builder.py" beforeDir="false" afterPath="$PROJECT_DIR$/build/model_builder.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/configs/config.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/configs/config.yaml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/data/collate.py" beforeDir="false" afterPath="$PROJECT_DIR$/data/collate.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/data/dataset.py" beforeDir="false" afterPath="$PROJECT_DIR$/data/dataset.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/models/full_model.py" beforeDir="false" afterPath="$PROJECT_DIR$/models/full_model.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/training/trainer.py" beforeDir="false" afterPath="$PROJECT_DIR$/training/trainer.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -61,7 +54,6 @@
     "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
     "RunOnceActivity.git.unshallow": "true",
     "RunOnceActivity.typescript.service.memoryLimit.init": "true",
-    "SHARE_PROJECT_CONFIGURATION_FILES": "true",
     "codeWithMe.voiceChat.enabledByDefault": "false",
     "git-widget-placeholder": "master",
     "node.js.detected.package.eslint": "true",
@@ -182,7 +174,7 @@
       <updated>1780393876866</updated>
       <workItem from="1780393877894" duration="16437000" />
       <workItem from="1780414964256" duration="89464000" />
-      <workItem from="1781070576110" duration="59999000" />
+      <workItem from="1781070576110" duration="62085000" />
     </task>
     <task id="LOCAL-00001" summary="Update">
       <option name="closed" value="true" />
@@ -536,11 +528,46 @@
       <option name="project" value="LOCAL" />
       <updated>1781165586257</updated>
     </task>
-    <option name="localTasksCounter" value="45" />
+    <task id="LOCAL-00045" summary="Update">
+      <option name="closed" value="true" />
+      <created>1781266820833</created>
+      <option name="number" value="00045" />
+      <option name="presentableId" value="LOCAL-00045" />
+      <option name="project" value="LOCAL" />
+      <updated>1781266820833</updated>
+    </task>
+    <task id="LOCAL-00046" summary="Update">
+      <option name="closed" value="true" />
+      <created>1781267164516</created>
+      <option name="number" value="00046" />
+      <option name="presentableId" value="LOCAL-00046" />
+      <option name="project" value="LOCAL" />
+      <updated>1781267164516</updated>
+    </task>
+    <task id="LOCAL-00047" summary="Update">
+      <option name="closed" value="true" />
+      <created>1781268918396</created>
+      <option name="number" value="00047" />
+      <option name="presentableId" value="LOCAL-00047" />
+      <option name="project" value="LOCAL" />
+      <updated>1781268918396</updated>
+    </task>
+    <option name="localTasksCounter" value="48" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State />
+          </value>
+        </entry>
+      </map>
+    </option>
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="Update" />
