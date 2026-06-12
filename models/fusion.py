@@ -35,7 +35,7 @@ class DirectedFusion(nn.Module):
 
             feats = torch.stack([x for x, _ in incoming[i]],dim=1)
 
-            weights = torch.tensor([s for _, s in incoming[i]],device=feats.device)
+            weights = torch.stack([s for _, s in incoming[i]])
 
             weights = F.softmax(weights, dim=0)
 

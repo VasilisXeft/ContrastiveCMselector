@@ -118,6 +118,35 @@ def build_datasets(dataset_name,
     return train_dataset, test_dataset
 
 
+def calculate_pos_weights(dataloader, device):
+    """
+    Υπολογίζει δυναμικά το pos_weight για Valence και Arousal
+    από τα δεδομένα του τρέχοντος Dataloader.
+    """
+    val_pos, val_neg = 0, 0
+    ars_pos, ars_neg = 0, 0
+
+    for batch in dataloader:
+        val_labels = batch['targets']['valence']
+        ars_labels = batch['targets']['arousal']
+
+        val_pos += (val_labels == 1).sum().item()
+        val_neg += (val_labels == 0).sum().item()
+
+        ars_pos += (ars_labels == 1).sum().item()
+        ars_neg += (ars_labels == 0).sum().item()
+
+    # Προστασία από διαίρεση με το μηδέν
+    val_weight = val_neg / (val_pos + 1e-5)
+    ars_weight = ars_neg / (ars_pos + 1e-5)
+
+    print(f"📊 Class Weights - Valence: {val_weight:.2f}, Arousal: {ars_weight:.2f}")
+
+    return {
+        "valence": torch.tensor([val_weight], dtype=torch.float).to(device),
+        "arousal": torch.tensor([ars_weight], dtype=torch.float).to(device)
+    }
+
 def main():
 
     args = parse_args()
@@ -176,25 +205,8 @@ def main():
 
         model = model.to(device)
 
-        ###################################
-        # LOSSES
-        ###################################
 
-        (
-            task_losses,
-            contrastive_loss,
-            graph_loss,
-            reliability_loss,
-            loss_cfg
-        ) = build_losses(cfg)
 
-        loss_router = LossRouter(
-            task_losses=task_losses,
-            contrastive_loss=contrastive_loss,
-            graph_loss=graph_loss,
-            reliability_loss=reliability_loss,
-            lambda_cfg=loss_cfg
-        )
 
         ###################################
         # DATASETS
@@ -244,6 +256,28 @@ def main():
             mode="min",
             factor=0.05,
             patience=3
+        )
+
+        ###################################
+        # LOSSES
+        ###################################
+
+        pos_weights = calculate_pos_weights(train_loader, device)
+
+        (
+            task_losses,
+            contrastive_loss,
+            graph_loss,
+            reliability_loss,
+            loss_cfg
+        ) = build_losses(cfg, pos_weights)
+
+        loss_router = LossRouter(
+            task_losses=task_losses,
+            contrastive_loss=contrastive_loss,
+            graph_loss=graph_loss,
+            reliability_loss=reliability_loss,
+            lambda_cfg=loss_cfg
         )
 
         ###################################

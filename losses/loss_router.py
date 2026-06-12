@@ -55,7 +55,7 @@ class LossRouter:
 
             loss_fn = self.task_losses[task_name]
 
-            loss = loss_fn(pred.squeeze(-1), targets[task_name])
+            loss = loss_fn(pred.flatten(), targets[task_name].flatten())
 
             task_loss += loss
 

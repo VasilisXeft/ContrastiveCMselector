@@ -178,6 +178,12 @@ def resample_fixed(data_chunk, target_length):
 
     return resample(data_chunk, target_length, axis=0)
 
+def normalize(tensor):
+    # tensor shape: [Channels, Time]
+    mean = tensor.mean(dim=1, keepdim=True)
+    std = tensor.std(dim=1, keepdim=True) + 1e-8
+    return (tensor - mean) / std
+
 
 class MAHNOBMultimodalDataset(Dataset):
 
@@ -229,11 +235,16 @@ class MAHNOBMultimodalDataset(Dataset):
             try:
                 root = ET.parse(xml_path).getroot()
 
+                valence, arousal = int(root.attrib["feltVlnc"]), int(root.attrib["feltArsl"])
+
+                if valence == 0 or arousal == 0:
+                    continue
+
                 subject_id = int(root.find("subject").attrib["id"])
                 session_id = int(root.attrib["sessionId"])
                 labels = {
-                    "valence": int(int(root.attrib["feltVlnc"]) > 5),
-                    "arousal": int(int(root.attrib["feltArsl"]) > 5)
+                    "valence": float(valence >= 5),
+                    "arousal": float(arousal >= 5)
                 }
 
             except Exception:
@@ -528,34 +539,34 @@ class MAHNOBMultimodalDataset(Dataset):
         return {
 
         "eeg":
-            torch.from_numpy(
+            normalize(torch.from_numpy(
                 sample["eeg"]
-            ).float().T,
+            ).float().T),
 
         "ecg":
-            torch.from_numpy(
+            normalize(torch.from_numpy(
                 sample["ecg"]
-            ).float().T,
+            ).float().T),
 
         "eda":
-            torch.from_numpy(
+            normalize(torch.from_numpy(
                 sample["eda"]
-            ).float().T,
+            ).float().T),
 
         "tmp":
-            torch.from_numpy(
+            normalize(torch.from_numpy(
                 sample["tmp"]
-            ).float().T,
+            ).float().T),
 
         "rsp":
-            torch.from_numpy(
+            normalize(torch.from_numpy(
                 sample["rsp"]
-            ).float().T,
+            ).float().T),
 
         "eye":
-            torch.from_numpy(
+            normalize(torch.from_numpy(
                 sample["eye"]
-            ).float().T,
+            ).float().T),
 
         "signal_quality":
             torch.from_numpy(

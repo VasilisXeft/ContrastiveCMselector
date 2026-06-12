@@ -128,7 +128,7 @@ class Trainer:
                     f"f1_val={val_metrics['valence_f1']:.4f} | "
                     f"acc_aro={val_metrics['arousal_acc']:.4f} | "
                     f"f1_aro={val_metrics['arousal_f1']:.4f} | "
-                    f"lr={self.optimizer.param_groups[0]['lr']:.6f}"
+                    f"lr={self.optimizer.param_groups[0]['lr']}"
                 )
 
                 self.history["val_loss"].append(val_loss)

@@ -19,7 +19,7 @@ class GraphEmbedding(nn.Module):
 
     def forward(self, x):
         if self.method == 'attention':
-            x = torch.stack(x)
+            x = torch.stack(x, dim=1)
 
             scores = self.scorer(x)
             weights = torch.softmax(scores, dim=1)

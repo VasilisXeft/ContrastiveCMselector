@@ -82,5 +82,3 @@ class DirectedContrastiveSelector(nn.Module):
 
             for k, j in enumerate(topk_idx.tolist()):
                 directed_edges.append((i, j, topk_vals[k].item()))
-
-        return scores, directed_edges
