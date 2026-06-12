@@ -81,4 +81,5 @@ class DirectedContrastiveSelector(nn.Module):
             topk_vals, topk_idx = torch.topk(mean_scores[i], self.top_k)
 
             for k, j in enumerate(topk_idx.tolist()):
-                directed_edges.append((i, j, topk_vals[k].item()))
+                directed_edges.append((i, j, topk_vals[k]))
+        return scores, directed_edges
