@@ -1,7 +1,6 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.cuda import device
 from torchvision.models import mobilenet_v3_large, MobileNet_V3_Large_Weights
 
 
@@ -137,6 +136,10 @@ class EEGNetEncoder(nn.Module):
         )
 
     def forward(self, x):
+        mean = x.mean(dim=-1, keepdim=True)
+        std = x.std(dim=-1, keepdim=True)
+        x = (x - mean) / (std + 1e-8)
+
         x = x.unsqueeze(1)
 
         x = self.temporal(x)
@@ -169,6 +172,9 @@ class PhysioEncoder(nn.Module):
     def forward(self, x):
         if x.dim() == 2: # x: [B, T]
             x = x.unsqueeze(1)
+        mean = x.mean(dim=-1, keepdim=True)
+        std = x.std(dim=-1, keepdim=True)
+        x = (x - mean) / (std + 1e-8)
 
         x = self.net(x)
         x = self.pool(x)

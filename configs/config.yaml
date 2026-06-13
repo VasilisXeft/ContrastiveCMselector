@@ -29,11 +29,11 @@ model:
       emb_dim: 64
 
   modality_dropout:
-    p: 0.15
+    p: 0.0
 
   reliability_score:
     emb_dim: 64
-    num_modalities: 6
+    num_modalities: 5
     init_lambda: 0.1
 
   selector:

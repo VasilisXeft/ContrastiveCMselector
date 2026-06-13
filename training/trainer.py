@@ -164,7 +164,7 @@ class Trainer:
         all_preds = {"valence":[], "arousal": []}
         all_targets = {"valence":[], "arousal": []}
 
-        for batch in tqdm(self.train_loader):
+        for batch in tqdm(self.train_loader, leave=False):
             if batch is None:
                 continue
 

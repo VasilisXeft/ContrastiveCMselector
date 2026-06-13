@@ -4,13 +4,16 @@ import argparse
 import xml.etree.ElementTree as ET
 
 import torch
+import yaml
 from torch.utils.data import DataLoader
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 
 from build.model_builder import build_model
 from build.loss_builder import build_losses
 from losses.loss_router import LossRouter
+from models.encoders import EEGNetEncoder, PhysioEncoder
 from training.trainer import Trainer
+from training.pretrainer import pretrain_single_modality
 
 from data.dataset import (
     MultimodalDataset,
@@ -75,6 +78,13 @@ def parse_args():
         choices=["deap", "mahnob"],
         default="deap",
         help="Dataset to use."
+    )
+
+    parser.add_argument(
+        "--do_pretrain",
+        choices=[True, False],
+        default=True,
+        help="Pretrain."
     )
 
     return parser.parse_args()
@@ -195,17 +205,8 @@ def main():
             f"{args.dataset}_loso_fold{fold}.json"
         )
 
-        ###################################
-        # MODEL
-        ###################################
-
-        model, cfg = build_model(
-            "configs/config.yaml"
-        )
-
-        model = model.to(device)
-
-
+        with open("configs/config.yaml", "r") as f:
+            cfg = yaml.safe_load(f)
 
 
         ###################################
@@ -240,6 +241,60 @@ def main():
             shuffle=False,
             collate_fn=collate_fn
         )
+
+        # =========================
+        # PRETRAIN
+        # =========================
+
+        if args.do_pretrain:
+
+            if args.dataset == "deap":
+                encoders_dict = {
+                    "eeg": EEGNetEncoder(emb_dim=64),
+                    "ppg": PhysioEncoder(emb_dim=64),
+                    "eda": PhysioEncoder(emb_dim=64),
+                    "tmp": PhysioEncoder(emb_dim=64)
+                }
+
+                modalities_to_pretrain = ["eeg", "ppg", "eda", "tmp"]
+            else:
+                encoders_dict = {
+                    "eeg": EEGNetEncoder(emb_dim=64),
+                    "ecg": PhysioEncoder(emb_dim=64, in_ch=3),
+                    "eda": PhysioEncoder(emb_dim=64),
+                    "tmp": PhysioEncoder(emb_dim=64),
+                    "rsp": PhysioEncoder(emb_dim=64),
+                    "eye": PhysioEncoder(emb_dim=64, in_ch=3)
+                }
+
+                modalities_to_pretrain = ["eeg", "ecg", "eda", "tmp", "rsp", "eye"]
+
+            encoders_path_dict = {}
+
+            for mod in modalities_to_pretrain:
+                best_weights_path = pretrain_single_modality(
+                    modality_name=mod,
+                    encoder=encoders_dict[mod],
+                    train_loader=train_loader,
+                    val_loader=test_loader,
+                    fold=fold,
+                    device=device,
+                    epochs=20
+                )
+
+                encoders_path_dict[mod] = best_weights_path
+
+        ###################################
+        # MODEL
+        ###################################
+
+        model, _ = build_model(
+            "configs/config.yaml",
+            pretrained_weights=encoders_path_dict,
+            freeze_encoders=True
+        )
+
+        model = model.to(device)
 
         ###################################
         # OPTIMIZER

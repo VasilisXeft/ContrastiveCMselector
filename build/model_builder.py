@@ -19,7 +19,7 @@ from models.cross_modal import CrossModalBlock
 from models.modality_dropout import ModalityDropout
 
 
-def build_model(cfg_path):
+def build_model(cfg_path, pretrained_weights=None, freeze_encoders=False):
 
     with open(cfg_path, "r") as f:
         cfg = yaml.safe_load(f)
@@ -91,5 +91,7 @@ def build_model(cfg_path):
         selector=selector,
         fusion=fusion,
         graph_embedding=graph_embedding,
-        task_head=task_head
+        task_head=task_head,
+        pretrained_weights=pretrained_weights,
+        freeze_encoders=freeze_encoders
     ), cfg
