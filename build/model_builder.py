@@ -10,6 +10,8 @@ from models.task_head import TaskHead
 from models.encoders import VisualEncoder
 from models.encoders import EEGNetEncoder
 from models.encoders import PhysioEncoder
+from models.encoders import ECGEncoder
+from models.encoders import MultiScalePhysioEncoder
 
 # selector + fusion imports
 from models.selector import DirectedContrastiveSelector
@@ -32,12 +34,12 @@ def build_model(cfg_path, pretrained_weights=None, freeze_encoders=False):
     encoders = {
         "face": VisualEncoder(**model_cfg["encoders"]["face"]),
         "eeg": EEGNetEncoder(**model_cfg["encoders"]["eeg"]),
-        "ppg": PhysioEncoder(**model_cfg["encoders"]["ppg"]),
-        "eda": PhysioEncoder(**model_cfg["encoders"]["eda"]),
-        "tmp": PhysioEncoder(**model_cfg["encoders"]["tmp"]),
-        "rsp": PhysioEncoder(**model_cfg["encoders"]["rsp"]),
+        "ppg": MultiScalePhysioEncoder(**model_cfg["encoders"]["ppg"]),
+        "eda": MultiScalePhysioEncoder(**model_cfg["encoders"]["eda"]),
+        "tmp": MultiScalePhysioEncoder(**model_cfg["encoders"]["tmp"]),
+        "rsp": MultiScalePhysioEncoder(**model_cfg["encoders"]["rsp"]),
         "eye": PhysioEncoder(**model_cfg["encoders"]["eye"]),
-        "ecg": PhysioEncoder(**model_cfg["encoders"]["ecg"]),
+        "ecg": ECGEncoder(**model_cfg["encoders"]["ecg"]),
     }
 
     # ------------------------

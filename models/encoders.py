@@ -181,3 +181,126 @@ class PhysioEncoder(nn.Module):
         x = x.squeeze(-1)
 
         return self.proj(x)  # [B, D]
+
+class MultiScalePhysioEncoder(nn.Module):
+    """
+    Ένας πανίσχυρος, Inception-style 1D Encoder για βιοσήματα.
+    Χρησιμοποιεί πολλαπλά μεγέθη φίλτρων ταυτόχρονα για να "βλέπει"
+    τόσο τις γρήγορες αιχμές (ECG) όσο και τις αργές αλλαγές (EDA/TMP).
+    """
+
+    def __init__(self, in_ch=1, emb_dim=64):
+        super().__init__()
+
+        # 1. Multi-Scale Feature Extraction (Παράλληλα φίλτρα)
+        # Χρησιμοποιούμε padding='same' ώστε τα αποτελέσματα να έχουν ακριβώς το ίδιο μήκος
+        self.branch_fast = nn.Conv1d(in_ch, 16, kernel_size=5, padding='same')
+        self.branch_mid = nn.Conv1d(in_ch, 16, kernel_size=15, padding='same')
+        self.branch_slow = nn.Conv1d(in_ch, 16, kernel_size=31, padding='same')
+
+        # 2. Μίξη των χαρακτηριστικών
+        # Έχουμε 16+16+16 = 48 channels από το concatenation
+        self.mixer = nn.Sequential(
+            nn.Conv1d(48, 64, kernel_size=3, padding=1),
+            nn.BatchNorm1d(64),
+            nn.GELU(),  # Η GELU είναι πιο σταθερή από τη ReLU για συνεχή φυσιολογικά σήματα
+            nn.MaxPool1d(2)  # Μικρή μείωση του χρόνου στο μισό
+        )
+
+        # 3. Deep Feature Extraction
+        self.deep = nn.Sequential(
+            nn.Conv1d(64, 128, kernel_size=3, padding=1),
+            nn.BatchNorm1d(128),
+            nn.GELU()
+        )
+
+        # 4. ΣΥΝΤΗΡΗΣΗ ΤΟΥ ΧΡΟΝΟΥ! (Το αντίδοτο στο Mean Trap)
+        # Κρατάμε τις 4 πιο δυνατές "στιγμές" του παραθύρου.
+        self.pool = nn.AdaptiveMaxPool1d(4)
+
+        # 5. Τελική προβολή στο embedding dimension (64)
+        self.proj = nn.Sequential(
+            nn.Flatten(),
+            nn.Linear(128 * 4, emb_dim),
+            nn.LayerNorm(emb_dim)  # Εξασφαλίζει ότι το Fusion δεν θα δει gradients να εκρήγνυνται
+        )
+
+    def forward(self, x):
+        if x.dim() == 2:
+            x = x.unsqueeze(1)
+        # Εσωτερικό On-the-fly Z-Score Normalization
+        mean = x.mean(dim=-1, keepdim=True)
+        std = x.std(dim=-1, keepdim=True)
+        x = (x - mean) / (std + 1e-8)
+
+        # Multi-Scale περάσματα
+        x_fast = self.branch_fast(x)
+        x_mid = self.branch_mid(x)
+        x_slow = self.branch_slow(x)
+
+        # Συνένωση (Concatenation) στον άξονα των channels [B, 48, T]
+        x_cat = torch.cat([x_fast, x_mid, x_slow], dim=1)
+
+        # Επεξεργασία
+        x_mix = self.mixer(x_cat)
+        x_feat = self.deep(x_mix)
+
+        # Pooling & Projection
+        x_pooled = self.pool(x_feat)  # [Batch, 128, 4]
+        out = self.proj(x_pooled)  # [Batch, 64]
+
+        return out
+
+class ECGEncoder(nn.Module):
+    """
+    Αποκλειστικός Encoder για Ηλεκτροκαρδιογράφημα (ECG) με 3 κανάλια.
+    Σχεδιασμένος για να διατηρεί τα γεωμετρικά peaks (QRS) χωρίς να τα καταστρέφει το Pooling.
+    """
+
+    def __init__(self, in_ch=3, emb_dim=64):
+        super().__init__()
+
+        # Εξαγωγή χαρακτηριστικών: Σταδιακή μείωση του χρόνου με Strided Convolutions
+        self.features = nn.Sequential(
+            # Μεγάλο kernel (15) για να πιάσει το αργό κύμα T
+            nn.Conv1d(in_ch, 16, kernel_size=15, stride=2, padding=7),
+            nn.BatchNorm1d(16),
+            nn.ReLU(),
+
+            # Μικρότερο kernel (7) για τη γεωμετρία
+            nn.Conv1d(16, 32, kernel_size=7, stride=2, padding=3),
+            nn.BatchNorm1d(32),
+            nn.ReLU(),
+
+            # Focus στις αιχμές
+            nn.Conv1d(32, 64, kernel_size=3, stride=2, padding=1),
+            nn.BatchNorm1d(64),
+            nn.ReLU()
+        )
+
+        # 🌟 ΤΟ ΜΥΣΤΙΚΟ ΟΠΛΟ: Αντί για 1 σημείο, κρατάμε 4 χρονικές ζώνες!
+        # Το MaxPool εξασφαλίζει ότι το QRS peak ΔΕΝ θα χαθεί.
+        self.pool = nn.AdaptiveMaxPool1d(4)
+
+        # Μετατρέπουμε το [Batch, 64, 4] σε ένα επίπεδο διάνυσμα [Batch, 256]
+        # και μετά το ρίχνουμε στο επιθυμητό emb_dim (64).
+        self.proj = nn.Sequential(
+            nn.Flatten(),
+            nn.Linear(64 * 4, emb_dim),
+            nn.LayerNorm(emb_dim)
+        )
+
+    def forward(self, x):
+        # 1. Z-Score Normalization (On-the-fly)
+        mean = x.mean(dim=-1, keepdim=True)
+        std = x.std(dim=-1, keepdim=True)
+        x = (x - mean) / (std + 1e-8)
+
+        # 2. Εξαγωγή & Pooling
+        x = self.features(x)  # Βγάζει π.χ. [B, 64, 32]
+        x = self.pool(x)  # Το κάνει ΑΚΡΙΒΩΣ [B, 64, 4]
+
+        # 3. Τελικό Projection
+        x = self.proj(x)  # Βγάζει το τέλειο [B, 64]
+
+        return x
