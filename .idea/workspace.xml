@@ -3,13 +3,8 @@
   <component name="ChangeListManager">
     <list default="true" id="5ad51d33-04a0-4795-91c0-200f6fafc44b" name="Changes" comment="Update">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/build/model_builder.py" beforeDir="false" afterPath="$PROJECT_DIR$/build/model_builder.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/configs/config.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/configs/config.yaml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/data/split.py" beforeDir="false" afterPath="$PROJECT_DIR$/data/split.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/models/encoders.py" beforeDir="false" afterPath="$PROJECT_DIR$/models/encoders.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/models/task_head.py" beforeDir="false" afterPath="$PROJECT_DIR$/models/task_head.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/training/pretrainer.py" beforeDir="false" afterPath="$PROJECT_DIR$/training/pretrainer.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/training/trainer.py" beforeDir="false" afterPath="$PROJECT_DIR$/training/trainer.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -183,14 +178,6 @@
       <workItem from="1780414964256" duration="89464000" />
       <workItem from="1781070576110" duration="72719000" />
       <workItem from="1781285131773" duration="16825000" />
-    </task>
-    <task id="LOCAL-00005" summary="Update">
-      <option name="closed" value="true" />
-      <created>1780406789777</created>
-      <option name="number" value="00005" />
-      <option name="presentableId" value="LOCAL-00005" />
-      <option name="project" value="LOCAL" />
-      <updated>1780406789777</updated>
     </task>
     <task id="LOCAL-00006" summary="Update">
       <option name="closed" value="true" />
@@ -576,7 +563,15 @@
       <option name="project" value="LOCAL" />
       <updated>1781345427975</updated>
     </task>
-    <option name="localTasksCounter" value="54" />
+    <task id="LOCAL-00054" summary="Update">
+      <option name="closed" value="true" />
+      <created>1781759849686</created>
+      <option name="number" value="00054" />
+      <option name="presentableId" value="LOCAL-00054" />
+      <option name="project" value="LOCAL" />
+      <updated>1781759849686</updated>
+    </task>
+    <option name="localTasksCounter" value="55" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">

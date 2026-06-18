@@ -95,20 +95,56 @@ def evaluate_on_test(model, test_loader, device):
     val_preds, val_targs = [], []
     aro_preds, aro_targs = [], []
 
+    from training.train_step import move_batch_to_device
+
+    valid_batches_counted = 0
+
     with torch.no_grad():
         for batch in test_loader:
-            outputs, _, _ = model(batch, device=device)  # Προσαρμογή ανάλογα με το return του FullModel
+            # 1. Προστασία από εντελώς κενά batches που μπορεί να στείλει ο collate_fn
+            if batch is None or len(batch) == 0:
+                continue
+            if "targets" not in batch:
+                continue
 
-            targets_val = batch["targets"]["valence"].to(device).float().view(-1)
-            targets_aro = batch["targets"]["arousal"].to(device).float().view(-1)
+            batch = move_batch_to_device(batch, device)
 
-            preds_v = (torch.sigmoid(outputs["valence"]) > 0.5).int().cpu().numpy()
-            preds_a = (torch.sigmoid(outputs["arousal"]) > 0.5).int().cpu().numpy()
+            # 2. Προστασία στον Γράφο: Αν λείπουν ΟΛΑ τα modalities, το torch.stack θα σκάσει.
+            try:
+                outputs = model(batch)
+            except RuntimeError as e:
+                if "stack expects a non-empty TensorList" in str(e):
+                    # Το batch δεν έχει ούτε ένα modality! Το προσπερνάμε αθόρυβα.
+                    continue
+                else:
+                    # Αν είναι άλλο σοβαρό error, το πετάμε κανονικά
+                    raise e
+
+            if isinstance(outputs, tuple):
+                outputs = outputs[0]
+
+            # 3. Εξαγωγή Targets
+            targets_val = batch["targets"]["valence"].detach().cpu().view(-1)
+            targets_aro = batch["targets"]["arousal"].detach().cpu().view(-1)
+
+            # 4. Εξαγωγή Predictions
+            logits_v = outputs["pred"]["valence"].squeeze(-1)
+            logits_a = outputs["pred"]["arousal"].squeeze(-1)
+
+            preds_v = (torch.sigmoid(logits_v) > 0.5).int().cpu().numpy()
+            preds_a = (torch.sigmoid(logits_a) > 0.5).int().cpu().numpy()
 
             val_preds.extend(preds_v)
-            val_targs.extend(targets_val.cpu().numpy())
+            val_targs.extend(targets_val.numpy())
             aro_preds.extend(preds_a)
-            aro_targs.extend(targets_aro.cpu().numpy())
+            aro_targs.extend(targets_aro.numpy())
+
+            valid_batches_counted += 1
+
+    # 5. Προστασία: Τι γίνεται αν ο χρήστης (π.χ. Subject 1) δεν είχε ΟΥΤΕ ΕΝΑ σωστό παράθυρο;
+    if valid_batches_counted == 0 or len(val_preds) == 0:
+        print("   ⚠️ Ο συγκεκριμένος χρήστης δεν έχει κανένα έγκυρο βιοσήμα! Επιστροφή F1: 0.0")
+        return 0.0, 0.0
 
     f1_v = f1_score(val_targs, val_preds, average='macro', zero_division=0)
     f1_a = f1_score(aro_targs, aro_preds, average='macro', zero_division=0)
@@ -168,10 +204,10 @@ def main():
                     "tmp": MultiScalePhysioEncoder(emb_dim=64, in_ch=1)
                 }
                 pretrain_config = {
-                    "ppg": {"mode": "supervised", "lr": 1e-4, "epochs": 50},
-                    "eda": {"mode": "supervised", "lr": 1e-4, "epochs": 50},
-                    "tmp": {"mode": "supervised", "lr": 1e-4, "epochs": 50},
-                    "eeg": {"mode": "supervised", "lr": 1e-3, "epochs": 50},
+                    "ppg": {"mode": "supervised", "lr": 1e-4, "epochs": 25},
+                    "eda": {"mode": "supervised", "lr": 1e-4, "epochs": 25},
+                    "tmp": {"mode": "supervised", "lr": 1e-4, "epochs": 25},
+                    "eeg": {"mode": "supervised", "lr": 1e-3, "epochs": 25},
                 }
             else:
                 encoders_dict = {
@@ -183,12 +219,12 @@ def main():
                     "eye": PhysioEncoder(emb_dim=64, in_ch=3)
                 }
                 pretrain_config = {
-                    "ecg": {"mode": "supervised", "lr": 1e-4, "epochs": 50},
-                    "eeg": {"mode": "supervised", "lr": 1e-3, "epochs": 50},
-                    "eda": {"mode": "supervised", "lr": 1e-4, "epochs": 50},
-                    "tmp": {"mode": "supervised", "lr": 1e-4, "epochs": 50},
-                    "rsp": {"mode": "supervised", "lr": 1e-4, "epochs": 50},
-                    "eye": {"mode": "supervised", "lr": 1e-3, "epochs": 50},
+                    "ecg": {"mode": "supervised", "lr": 1e-4, "epochs": 25},
+                    "eeg": {"mode": "supervised", "lr": 1e-3, "epochs": 25},
+                    "eda": {"mode": "supervised", "lr": 1e-4, "epochs": 25},
+                    "tmp": {"mode": "supervised", "lr": 1e-4, "epochs": 25},
+                    "rsp": {"mode": "supervised", "lr": 1e-4, "epochs": 25},
+                    "eye": {"mode": "supervised", "lr": 1e-3, "epochs": 25},
                 }
 
             paths_for_this_fold = {}
@@ -207,12 +243,10 @@ def main():
         model, _ = build_model("configs/config.yaml", pretrained_weights=paths_for_this_fold, freeze_encoders=True)
         model = model.to(device)
 
-        # 🌟 Modality Dropout & Classifier Dropout πρέπει να έχουν οριστεί στο config.yaml (π.χ. 0.3 και 0.5)
 
-        optimizer = torch.optim.AdamW(model.parameters(), lr=cfg["training"]["lr"],
-                                      weight_decay=1e-4)  # Προσθήκη Weight Decay!
-        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=7,
-                                                               min_lr=1e-5)
+        optimizer = torch.optim.AdamW(model.parameters(), lr=cfg["training"]["lr"], weight_decay=1e-4)
+
+        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=7, min_lr=1e-5)
 
         pos_weights = calculate_pos_weights(train_loader, device)
         task_losses, contrastive_loss, graph_loss, reliability_loss, loss_cfg = build_losses(cfg, pos_weights)
@@ -224,16 +258,20 @@ def main():
             train_loader=train_loader, val_loader=val_loader, scheduler=scheduler, device=device
         )
 
-        # Η εκπαίδευση γίνεται, και υποθέτουμε ότι η κλάση Trainer αποθηκεύει
-        # εσωτερικά το 'best_model.pth' με βάση το Val F1 (Εσωτερικό Early Stopping).
-        trainer.fit(cfg["training"]["epochs"], log_pth=log_pth)
+        best_fusion_path = f"pretrained_weights/best_fusion_fold{fold}.pth"
+
+        trainer.fit(
+            cfg["training"]["epochs"],
+            log_pth=log_pth,
+            save_path=best_fusion_path,   # <--- Στέλνουμε το path!
+            patience=12)
 
         # =========================
         # 🏆 ΤΕΛΙΚΗ ΑΞΙΟΛΟΓΗΣΗ TEST
         # =========================
         print("\n⏳ Φόρτωση του Καλύτερου Μοντέλου για αξιολόγηση στον Άγνωστο Χρήστη (Test Set)...")
         # Ανάλογα πού σώζει ο Trainer σου τα βάρη. Βάλε το σωστό path!
-        # model.load_state_dict(torch.load("best_model.pth"))
+        model.load_state_dict(torch.load(best_fusion_path))
 
         try:
             test_f1_v, test_f1_a = evaluate_on_test(model, test_loader, device)
@@ -250,11 +288,11 @@ def main():
             print(f"⚠️ Προσοχή: Απέτυχε το Test Evaluation. Σφάλμα: {e}")
 
     # =========================
-    # 📈 ΤΕΛΙΚΟ REPORT (PhD READY!)
+    # FINAL REPORT
     # =========================
-    print("\n" + "🔥" * 30)
-    print("      ΤΕΛΙΚΑ ΑΠΟΤΕΛΕΣΜΑΤΑ (TEST SET)      ")
-    print("🔥" * 30)
+    print("\n" + "=" * 30)
+    print("      TEST SET RESULTS      ")
+    print("=" * 30)
 
     val_scores = []
     aro_scores = []
@@ -266,8 +304,8 @@ def main():
         aro_scores.append(res["arousal_f1"])
 
     print("-" * 50)
-    print(f"🌟 AVERAGE VALENCE F1: {np.mean(val_scores):.4f} ± {np.std(val_scores):.4f}")
-    print(f"🌟 AVERAGE AROUSAL F1: {np.mean(aro_scores):.4f} ± {np.std(aro_scores):.4f}")
+    print(f"AVERAGE VALENCE F1: {np.mean(val_scores):.4f} ± {np.std(val_scores):.4f}")
+    print(f"AVERAGE AROUSAL F1: {np.mean(aro_scores):.4f} ± {np.std(aro_scores):.4f}")
     print("-" * 50)
 
 
