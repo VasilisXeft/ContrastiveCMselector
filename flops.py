@@ -20,14 +20,16 @@ signal_quality = torch.randn(B, 6)
 # Notice we OMIT 'targets' here. Usually, passing targets triggers loss
 # computation, which creates scalar tensors that often break the JIT tracer.
 
-# 3) Create the Wrapper
+# --------------------------------------------------------------------
+# 3) Create the Wrapper (Ο ΑΠΟΛΥΤΟΣ JIT-SAFE WRAPPER)
+# --------------------------------------------------------------------
 class FLOPWrapper(torch.nn.Module):
     def __init__(self, base_model):
         super().__init__()
         self.base_model = base_model
 
     def forward(self, eeg, ecg, eda, tmp, rsp, eye, sq):
-        # Reconstruct the dictionary inside the forward pass
+        # Ανακατασκευή του dictionary
         batch = {
             "eeg": eeg,
             "ecg": ecg,
@@ -38,14 +40,36 @@ class FLOPWrapper(torch.nn.Module):
             "signal_quality": sq
         }
 
-        # Run the model
+        # Τρέχουμε το μοντέλο
         out = self.base_model(batch)
 
-        # JIT Tracer HATES dictionaries.
-        # If your model returns a dict, flatten it into a tuple of tensors!
-        if isinstance(out, dict):
-            return tuple(out.values())
-        return out
+        # --- ΑΣΦΑΛΗΣ ΕΞΑΓΩΓΗ ΓΙΑ ΤΟΝ TRACER ---
+        # Μαζεύουμε ΜΟΝΟ τα float tensors (αγνοώντας LongTensors, indices, κλπ)
+        float_outputs = []
+
+        def extract_floats(x):
+            if isinstance(x, torch.Tensor) and x.is_floating_point():
+                float_outputs.append(x)
+            elif isinstance(x, dict):
+                for v in x.values():
+                    extract_floats(v)
+            elif isinstance(x, (list, tuple)):
+                for v in x:
+                    extract_floats(v)
+
+        extract_floats(out)
+
+        # Επιστρέφουμε ένα απλό άθροισμα όλων των float εξόδων.
+        # Αυτό ικανοποιεί το JIT tracer γιατί βλέπει ένα float tensor
+        # που εξαρτάται άμεσα από τα βάρη και τις εισόδους.
+        if len(float_outputs) > 0:
+            return sum(t.sum() for t in float_outputs)
+        else:
+            # Fallback αν για κάποιο λόγο δεν βρεθεί κανένα float output
+            return eeg.sum() * 0.0
+
+        # Instantiate wrapper
+
 
 # Instantiate wrapper
 wrapper = FLOPWrapper(model)
