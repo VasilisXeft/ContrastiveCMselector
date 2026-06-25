@@ -243,8 +243,8 @@ class MAHNOBMultimodalDataset(Dataset):
                 subject_id = int(root.find("subject").attrib["id"])
                 session_id = int(root.attrib["sessionId"])
                 labels = {
-                    "valence": float(valence >= 5),
-                    "arousal": float(arousal >= 5)
+                    "valence": float(valence >= 4.5),
+                    "arousal": float(arousal >= 4.5)
                 }
 
             except Exception:

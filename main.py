@@ -8,7 +8,7 @@ import torch
 import yaml
 from torch.utils.data import DataLoader
 from torch.optim.lr_scheduler import ReduceLROnPlateau
-from sklearn.metrics import f1_score
+from sklearn.metrics import accuracy_score
 
 from build.model_builder import build_model
 from build.loss_builder import build_losses
@@ -50,7 +50,7 @@ def get_mahnob_subjects(base_path):
 
 def parse_args():
     parser = argparse.ArgumentParser(description="LOSO training for DEAP or MAHNOB.")
-    parser.add_argument("--dataset", choices=["deap", "mahnob"], default="mahnob", help="Dataset to use.")
+    parser.add_argument("--dataset", choices=["deap", "mahnob"], default="deap", help="Dataset to use.")
     parser.add_argument("--do_pretrain", choices=[True, False], default=True, help="Pretrain.")
     return parser.parse_args()
 
@@ -90,66 +90,57 @@ def calculate_pos_weights(dataloader, device):
     }
 
 
-def evaluate_on_test(model, test_loader, device):
+def evaluate_on_test(model, test_loader, device, tasks):
     model.eval()
-    val_preds, val_targs = [], []
-    aro_preds, aro_targs = [], []
 
-    from training.train_step import move_batch_to_device
+    all_preds = {task: [] for task in tasks}
+    all_targs = {task: [] for task in tasks}
 
     valid_batches_counted = 0
+    from training.train_step import move_batch_to_device
 
     with torch.no_grad():
         for batch in test_loader:
-            # 1. Προστασία από εντελώς κενά batches που μπορεί να στείλει ο collate_fn
-            if batch is None or len(batch) == 0:
-                continue
-            if "targets" not in batch:
+
+            if batch is None or len(batch) == 0 or "targets" not in batch:
                 continue
 
             batch = move_batch_to_device(batch, device)
 
-            # 2. Προστασία στον Γράφο: Αν λείπουν ΟΛΑ τα modalities, το torch.stack θα σκάσει.
             try:
                 outputs = model(batch)
             except RuntimeError as e:
                 if "stack expects a non-empty TensorList" in str(e):
-                    # Το batch δεν έχει ούτε ένα modality! Το προσπερνάμε αθόρυβα.
                     continue
-                else:
-                    # Αν είναι άλλο σοβαρό error, το πετάμε κανονικά
-                    raise e
+                raise e
 
             if isinstance(outputs, tuple):
                 outputs = outputs[0]
 
-            # 3. Εξαγωγή Targets
-            targets_val = batch["targets"]["valence"].detach().cpu().view(-1)
-            targets_aro = batch["targets"]["arousal"].detach().cpu().view(-1)
+            for task in tasks:
+                if task in batch["targets"] and task in outputs["pred"]:
+                    targets = batch["targets"][task].detach().cpu().view(-1)
+                    logits = outputs["pred"][task].squeeze(-1)
 
-            # 4. Εξαγωγή Predictions
-            logits_v = outputs["pred"]["valence"].squeeze(-1)
-            logits_a = outputs["pred"]["arousal"].squeeze(-1)
+                    preds = (torch.sigmoid(logits) > 0.5).int().cpu().numpy()
 
-            preds_v = (torch.sigmoid(logits_v) > 0.5).int().cpu().numpy()
-            preds_a = (torch.sigmoid(logits_a) > 0.5).int().cpu().numpy()
-
-            val_preds.extend(preds_v)
-            val_targs.extend(targets_val.numpy())
-            aro_preds.extend(preds_a)
-            aro_targs.extend(targets_aro.numpy())
+                    all_preds[task].extend(preds)
+                    all_targs[task].extend(targets.numpy())
 
             valid_batches_counted += 1
 
-    # 5. Προστασία: Τι γίνεται αν ο χρήστης (π.χ. Subject 1) δεν είχε ΟΥΤΕ ΕΝΑ σωστό παράθυρο;
-    if valid_batches_counted == 0 or len(val_preds) == 0:
-        print("   ⚠️ Ο συγκεκριμένος χρήστης δεν έχει κανένα έγκυρο βιοσήμα! Επιστροφή F1: 0.0")
-        return 0.0, 0.0
+    if valid_batches_counted == 0:
+        print("No valid biosignals for user. Return Acc: 0.0")
+        return {task: 0.0 for task in tasks}
 
-    f1_v = f1_score(val_targs, val_preds, average='macro', zero_division=0)
-    f1_a = f1_score(aro_targs, aro_preds, average='macro', zero_division=0)
+    f1_scores = {}
+    for task in tasks:
+        if len(all_targs[task]) > 0:
+            f1_scores[task] = accuracy_score(all_targs[task], all_preds[task])
+        else:
+            f1_scores[task] = 0.0
 
-    return f1_v, f1_a
+    return f1_scores
 
 
 def main():
@@ -167,7 +158,7 @@ def main():
 
     for fold, (train_subs, val_subs, test_subs) in enumerate(splits):
         print("\n" + "=" * 60)
-        print(f"🚀 FOLD {fold + 1}/{len(splits)}")
+        print(f"FOLD {fold + 1}/{len(splits)}")
         print(f"Train : {train_subs}")
         print(f"Val   : {val_subs}")
         print(f"Test  : {test_subs}")
@@ -177,6 +168,8 @@ def main():
 
         with open("configs/config.yaml", "r") as f:
             cfg = yaml.safe_load(f)
+
+        active_tasks = cfg["model"]["task_head"]["outputs"]
 
         train_dataset, val_dataset, test_dataset = build_datasets(
             args.dataset, train_subs, val_subs, test_subs
@@ -193,7 +186,7 @@ def main():
                                  collate_fn=collate_fn)
 
         # =========================
-        # PRETRAIN (ΟΛΑ SUPERVISED!)
+        # PRETRAIN
         # =========================
         if args.do_pretrain:
             if args.dataset == "deap":
@@ -232,7 +225,8 @@ def main():
                 best_path = pretrain_encoder(
                     modality_name=mod, encoder=encoders_dict[mod], train_loader=train_loader,
                     val_loader=val_loader, fold=fold, device=device, mode=config["mode"],
-                    lr=config["lr"], epochs=config["epochs"]
+                    lr=config["lr"], epochs=config["epochs"],
+                    tasks=active_tasks
                 )
                 paths_for_this_fold[mod] = best_path
                 encoders_dict[mod].load_state_dict(torch.load(best_path))
@@ -255,7 +249,8 @@ def main():
 
         trainer = Trainer(
             model=model, optimizer=optimizer, loss_router=loss_router,
-            train_loader=train_loader, val_loader=val_loader, scheduler=scheduler, device=device
+            train_loader=train_loader, val_loader=val_loader, scheduler=scheduler, device=device,
+            tasks=active_tasks
         )
 
         best_fusion_path = f"pretrained_weights/best_fusion_fold{fold}.pth"
@@ -263,50 +258,50 @@ def main():
         trainer.fit(
             cfg["training"]["epochs"],
             log_pth=log_pth,
-            save_path=best_fusion_path,   # <--- Στέλνουμε το path!
+            save_path=best_fusion_path,
             patience=12)
 
         # =========================
-        # 🏆 ΤΕΛΙΚΗ ΑΞΙΟΛΟΓΗΣΗ TEST
+        # FINAL TEST EVAUATION
         # =========================
-        print("\n⏳ Φόρτωση του Καλύτερου Μοντέλου για αξιολόγηση στον Άγνωστο Χρήστη (Test Set)...")
-        # Ανάλογα πού σώζει ο Trainer σου τα βάρη. Βάλε το σωστό path!
+        print("\nLoading best fusion model!")
+
         model.load_state_dict(torch.load(best_fusion_path))
 
         try:
-            test_f1_v, test_f1_a = evaluate_on_test(model, test_loader, device)
-            print(
-                f"🎯 Αποτελέσματα FOLD {fold + 1} (Subj: {test_subs[0]}): Valence F1: {test_f1_v:.4f} | Arousal F1: {test_f1_a:.4f}")
+            test_f1_dict = evaluate_on_test(model, test_loader, device, active_tasks)
 
-            all_test_results.append({
-                "fold": fold + 1,
-                "test_subject": test_subs[0],
-                "valence_f1": test_f1_v,
-                "arousal_f1": test_f1_a
-            })
+            res_string = " | ".join([f"{t.capitalize()} F1: {v:.4f}" for t, v in test_f1_dict.items()])
+            print(f"Results FOLD {fold + 1} (Subj: {test_subs[0]}): {res_string}")
+
+            result_entry = {"fold": fold + 1, "test_subject": test_subs[0]}
+            result_entry.update(test_f1_dict)
+            all_test_results.append(result_entry)
+
         except Exception as e:
-            print(f"⚠️ Προσοχή: Απέτυχε το Test Evaluation. Σφάλμα: {e}")
+            print(f"Test evaluation failed due to error: {e}")
 
-    # =========================
-    # FINAL REPORT
-    # =========================
-    print("\n" + "=" * 30)
-    print("      TEST SET RESULTS      ")
-    print("=" * 30)
+        # =========================
+        # FINAL REPORT
+        # =========================
+        print("\n" + "=" * 30)
+        print("      FINAL TEST SET RESULTS      ")
+        print("=" * 30)
 
-    val_scores = []
-    aro_scores = []
+        scores = {task: [] for task in active_tasks}
 
-    for res in all_test_results:
-        print(
-            f"Fold {res['fold']:02d} (Subj {res['test_subject']}): Valence = {res['valence_f1']:.4f} | Arousal = {res['arousal_f1']:.4f}")
-        val_scores.append(res["valence_f1"])
-        aro_scores.append(res["arousal_f1"])
+        for res in all_test_results:
+            res_str = " | ".join([f"{t.capitalize()}: {res[t]:.4f}" for t in active_tasks])
+            print(f"Fold {res['fold']:02d} (Subj {res['test_subject']}): {res_str}")
+            for t in active_tasks:
+                scores[t].append(res[t])
 
-    print("-" * 50)
-    print(f"AVERAGE VALENCE F1: {np.mean(val_scores):.4f} ± {np.std(val_scores):.4f}")
-    print(f"AVERAGE AROUSAL F1: {np.mean(aro_scores):.4f} ± {np.std(aro_scores):.4f}")
-    print("-" * 50)
+        print("-" * 50)
+        for task in active_tasks:
+            mean_score = np.mean(scores[task])
+            std_score = np.std(scores[task])
+            print(f"AVERAGE {task.upper()} ACC: {mean_score:.4f} ± {std_score:.4f}")
+        print("-" * 50)
 
 
 if __name__ == "__main__":
